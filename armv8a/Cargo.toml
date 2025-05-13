@@ -1,0 +1,8 @@
+[package]
+name = "armv8a"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+entry-macro = { path = "../macros/entry", features = ["armv8a"] }
+cfg-asm = { path = "../macros/cfg-asm" }

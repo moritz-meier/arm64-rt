@@ -38,6 +38,16 @@
         ];
       };
 
+      crossPkgs = {
+        aarch64-embedded = import nixpkgs {
+          localSystem = system;
+          crossSystem = {
+            config = "aarch64-unknown-none-elf";
+            rust.rustcTarget = "aarch64-unknown-none";
+          };
+        };
+      };
+
       treefmtEval = treefmt.lib.evalModule pkgs ./treefmt.nix;
     in
     {
@@ -65,6 +75,7 @@
           imports = [ "${devshell}/extra/git/hooks.nix" ];
 
           packages = [
+            crossPkgs.aarch64-embedded.stdenv.cc
             rust-toolchain
           ];
 

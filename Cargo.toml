@@ -1,0 +1,2 @@
+[workspace]
+members = ["armv8a", "example", "macros/cfg-asm", "macros/cfg-asm"]
