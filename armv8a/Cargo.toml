@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+macropol = { version = "0.1.3" }
+
 entry-macro = { path = "../macros/entry", features = ["armv8a"] }
 cfg-asm = { path = "../macros/cfg-asm" }
