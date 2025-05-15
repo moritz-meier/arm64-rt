@@ -21,7 +21,7 @@ macro_rules! get_cpu_id {
     };
 }
 
-macro_rules! reset_el3 {
+macro_rules! setup_el3 {
     () => {
         "mrs x9, SCTLR_EL3
          bic x9, x9, #(1 << 0)
@@ -34,8 +34,54 @@ macro_rules! reset_el3 {
          tlbi alle3
          ic iallu
          dsb sy
+         isb"
+    };
+}
+
+macro_rules! setup_el2 {
+    () => {
+        "mrs x9, SCTLR_EL2
+         bic x9, x9, #(1 << 0)
+         bic x9, x9, #(1 << 2)
+         bic x9, x9, #(1 << 12)
+         msr SCTLR_EL2, x9
+         dsb sy
          isb
-         "
+         
+         tlbi alle3
+         ic iallu
+         dsb sy
+         isb"
+    };
+}
+
+macro_rules! setup_el1 {
+    () => {
+        "mrs x9, SCTLR_EL1
+         bic x9, x9, #(1 << 0)
+         bic x9, x9, #(1 << 2)
+         bic x9, x9, #(1 << 12)
+         msr SCTLR_EL1, x9
+         dsb sy
+         isb
+         
+         tlbi alle3
+         ic iallu
+         dsb sy
+         isb"
+    };
+}
+
+macro_rules! zero_bss {
+    () => {
+        "ldr x9, =__bss_start
+         ldr x10, =__bss_end
+
+         1:
+         str xzr, [x0], #8
+         cmp x0, x1
+         blo 1b
+        "
     };
 }
 
@@ -75,15 +121,18 @@ pub unsafe extern "C" fn start<EntryImpl: Entry>() -> ! {
         inf_loop!(),                // If current EL != {0, 1, 2, 3}, something is really wrong
 
         "in_el3:",                  // If we are in EL3
-        reset_el3!(),
+        setup_el3!(),
 
-        "in_el2:",
-        "",
+        "in_el2:",                  // If we are in EL2
+        setup_el2!(),
 
-        "in_el1:",
-        "",
+        "in_el1:",                  // If we are in EL1
+        setup_el1!(),
 
         "in_el0:",
         "",
+
+        zero_bss!(),
+
     },);
 }
