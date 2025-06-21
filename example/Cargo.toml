@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-armv8a = { path = "../armv8a" }
+arm64 = { path = "../arm64" }

@@ -3,12 +3,21 @@
 
 use core::panic::PanicInfo;
 
-use armv8a::entry;
+use arm64::entry;
 
 #[entry]
 unsafe fn main() -> ! {
+    fib(3);
+
     loop {
         unsafe { core::arch::asm!("nop") };
+    }
+}
+
+fn fib(n: usize) -> usize {
+    match n {
+        1 | 2 => 1,
+        _ => fib(n - 1) + fib(n - 2),
     }
 }
 

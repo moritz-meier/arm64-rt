@@ -7,7 +7,7 @@ edition = "2024"
 proc-macro = true
 
 [features]
-armv8a = []
+arm64 = []
 
 [dependencies]
 quote = "1.0.40"

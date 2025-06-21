@@ -1,2 +1,6 @@
 [build]
 target = "aarch64-unknown-none"
+
+[target.aarch64-unknown-none]
+rustflags = ["-C", "link-arg=-Tarm64.ld"]
+runner = "qemu-system-aarch64 -M xlnx-zcu102,secure=on,virtualization=on -m size=4G -nographic -serial mon:stdio -S -s -kernel"

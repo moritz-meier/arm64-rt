@@ -1,10 +1,10 @@
 [package]
-name = "armv8a"
+name = "arm64"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 macropol = { version = "0.1.3" }
 
-entry-macro = { path = "../macros/entry", features = ["armv8a"] }
+entry-macro = { path = "../macros/entry", features = ["arm64"] }
 cfg-asm = { path = "../macros/cfg-asm" }

@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=master";
 
     rust = {
       url = "github:oxalica/rust-overlay";
@@ -75,8 +75,11 @@
           imports = [ "${devshell}/extra/git/hooks.nix" ];
 
           packages = [
+            pkgs.gdb
+            pkgs.stdenv.cc
             crossPkgs.aarch64-embedded.stdenv.cc
             rust-toolchain
+            pkgs.qemu_full
           ];
 
           git.hooks = {

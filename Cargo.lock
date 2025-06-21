@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "armv8a"
+name = "arm64"
 version = "0.1.0"
 dependencies = [
  "cfg-asm",
@@ -62,7 +62,7 @@ dependencies = [
 name = "example"
 version = "0.1.0"
 dependencies = [
- "armv8a",
+ "arm64",
 ]
 
 [[package]]

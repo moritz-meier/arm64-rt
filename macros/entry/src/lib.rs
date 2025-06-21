@@ -8,8 +8,8 @@ pub fn entry(_args: TokenStream, input: TokenStream) -> TokenStream {
     let f_ident = &f.sig.ident;
 
     let arch = match () {
-        #[cfg(feature = "armv8a")]
-        () => quote!(armv8a),
+        #[cfg(feature = "arm64")]
+        () => quote!(arm64),
     };
 
     quote!(
