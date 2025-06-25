@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 arm64 = { path = "../arm64" }
+arm-pl011-uart = "0.3.1"

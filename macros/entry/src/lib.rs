@@ -21,8 +21,8 @@ pub fn entry(_args: TokenStream, input: TokenStream) -> TokenStream {
 
         struct EntryImpl;
         impl #arch::Entry for EntryImpl {
-            unsafe extern "C" fn entry() -> ! {
-                #f_ident()
+            unsafe extern "C" fn entry(info: EntryInfo) -> ! {
+                #f_ident(info)
             }
         }
 

@@ -3,12 +3,10 @@
 
 use core::panic::PanicInfo;
 
-use arm64::entry;
+use arm64::{EntryInfo, entry};
 
 #[entry]
-unsafe fn main() -> ! {
-    fib(3);
-
+unsafe fn main(_info: EntryInfo) -> ! {
     loop {
         unsafe { core::arch::asm!("nop") };
     }
