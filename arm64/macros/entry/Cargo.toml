@@ -11,4 +11,5 @@ arm64 = []
 
 [dependencies]
 quote = "1.0.40"
+darling = "0.20.11"
 syn = { version = "2.0.101", features = ["full"] }

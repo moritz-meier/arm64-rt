@@ -1,2 +1,2 @@
 [workspace]
-members = ["example", "arm64", "macros/cfg-asm"]
+members = ["example", "arm64", "arm64/macros/entry", "macros/cfg-asm"]

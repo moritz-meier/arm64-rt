@@ -12,6 +12,7 @@ SECTIONS {
     .text ALIGN(0x1000) : AT(ADDR(.text)) {
         __text_start = .;
 
+        *(.text.start .text.start.*)
         *(.text .text.*)
 
         . = ALIGN(0x8);
@@ -51,7 +52,7 @@ SECTIONS {
 
         . += __NUM_CPU * __STACK_SIZE;
 
-        . = ALIGN(0x8);
+        . = ALIGN(0x10);
         __stack_end = .;
 
         . = ALIGN(0x1000);
