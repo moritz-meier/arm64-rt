@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use core::arch::asm;
 use core::sync::atomic::AtomicBool;
 use core::{cell::RefCell, fmt::Write, panic::PanicInfo, ptr::NonNull};
 
