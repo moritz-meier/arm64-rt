@@ -58,6 +58,9 @@ pub unsafe extern "C" fn start<
 
         "bl {core_init}",               // Init cores
 
+        #[cfg(feature = "cortex-a53")]  // Init impl specific stuff
+        "bl {core_a53_init}",
+
         "cbz x21, 10f",                 // Primary core continue with Rust init
               
         "ldr x9, ={sec_core_lock}",     // Secondary cores wait
@@ -122,6 +125,7 @@ pub unsafe extern "C" fn start<
     },
     sec_core_lock = sym SEC_CORE_LOCK,
     core_init = sym core_init::<Excps>,
+    core_a53_init = sym core_a53_init,
     rust_init = sym rust_init,
     rust_entry = sym rust_entry::<EntryImpl>);
 }
@@ -132,7 +136,7 @@ unsafe extern "C" fn core_init<
         + Exceptions<ELx_SP_ELx>
         + Exceptions<ELy_AARCH64>
         + Exceptions<ELy_AARCH32>,
->() -> ! {
+>() {
     cfg_naked_asm!({
         "msr DAIFSet, 0xF",             // Mask all exceptions
 
@@ -216,7 +220,16 @@ unsafe extern "C" fn core_init<
 }
 
 #[unsafe(naked)]
-unsafe extern "C" fn rust_init() -> ! {
+unsafe extern "C" fn core_a53_init() {
+    cfg_naked_asm!({
+        "mrs x9, S3_1_C15_C2_1",    // Set SMPEN in CPUECTLR_EL1
+        "orr x9, x9, #0x40",
+        "msr S3_1_C15_C2_1, x9",
+    },)
+}
+
+#[unsafe(naked)]
+unsafe extern "C" fn rust_init() {
     cfg_naked_asm!({
         // Init stack
         "ldr x9, =__stack_start",

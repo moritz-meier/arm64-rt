@@ -2,9 +2,12 @@
 #![no_main]
 
 use core::arch::asm;
+use core::f32::consts::PI;
+use core::ptr::read_volatile;
 use core::sync::atomic::AtomicBool;
 use core::{cell::RefCell, fmt::Write, panic::PanicInfo, ptr::NonNull};
 
+use arm64::cache::ICache;
 use spin::Mutex;
 
 use arm_pl011_uart::{
@@ -37,19 +40,17 @@ impl Exceptions<ELy_AARCH32> for ExcpsImpl {}
 
 #[entry(exceptions = ExcpsImpl)]
 unsafe fn main(info: EntryInfo) -> ! {
-    if info.cpu_idx == 0 {
-        unsafe {
-            init();
-            LOCK.store(false, core::sync::atomic::Ordering::Relaxed);
-        };
-    } else {
+    ICache::enable();
+    ICache::invalidate_all();
+    ICache::invalidate((0x0 as *const u8)..=(0xffff as *const u8));
+
+    if info.cpu_idx != 0 {
         loop {
-            let lock = LOCK.load(core::sync::atomic::Ordering::Relaxed);
-            if !lock {
-                break;
-            }
+            unsafe { asm!("wfe") }
         }
     }
+
+    unsafe { init() };
 
     {
         let uart = UART.lock();
@@ -83,13 +84,6 @@ unsafe fn init() {
         x.borrow_mut().replace(uart);
     }
 }
-
-// fn _fib(n: usize) -> usize {
-//     match n {
-//         1 | 2 => 1,
-//         _ => fib(n - 1) + fib(n - 2),
-//     }
-// }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
