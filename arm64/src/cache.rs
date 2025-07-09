@@ -1,6 +1,6 @@
 use core::{arch::asm, ops::RangeInclusive, usize};
 
-use crate::{bitmask, read_bitfield};
+use crate::{bitfield_read, bitmask, sysreg_read, sysreg_write};
 
 mod dcache;
 mod icache;
@@ -56,32 +56,24 @@ impl CacheInfo {
             return None;
         }
 
-        let id_aa64mmfr2_el1: u64;
-        let ccsidr_el1: u64;
-        let csselr_el1: u64 = ((idx as u64) << 1) | ({ if icache { 0b1 } else { 0b0 } } << 0);
-        unsafe {
-            asm!(
-                "msr CSSELR_EL1, {csselr_el1}",
-                "mrs {ccsidr_el1}, CCSIDR_EL1",
-                "mrs {id_aa64mmfr2_el1}, ID_AA64MMFR2_EL1",
-                csselr_el1 = in(reg) csselr_el1,
-                ccsidr_el1 = lateout(reg) ccsidr_el1,
-                id_aa64mmfr2_el1 = lateout(reg) id_aa64mmfr2_el1
-            );
-        }
+        let id_aa64mmfr2_el1: u64 = sysreg_read!("ID_AA64MMFR2_EL1");
+        let ccsidr_el1: u64 = sysreg_read!("CCSIDR_EL1");
 
-        let feat_ccidx = read_bitfield!(id_aa64mmfr2_el1, msb: 23, lsb: 20);
+        let csselr_el1: u64 = ((idx as u64) << 1) | ({ if icache { 0b1 } else { 0b0 } } << 0);
+        sysreg_write!("CSSELR_EL1", csselr_el1);
+
+        let feat_ccidx = bitfield_read!(id_aa64mmfr2_el1, msb: 23, lsb: 20);
 
         let (sets, ways, line) = if feat_ccidx > 0 {
-            let sets = read_bitfield!(ccsidr_el1, msb: 55, lsb: 32);
-            let ways = read_bitfield!(ccsidr_el1, msb: 23, lsb: 3);
-            let line = read_bitfield!(ccsidr_el1, msb: 2, lsb: 0);
+            let sets = bitfield_read!(ccsidr_el1, msb: 55, lsb: 32);
+            let ways = bitfield_read!(ccsidr_el1, msb: 23, lsb: 3);
+            let line = bitfield_read!(ccsidr_el1, msb: 2, lsb: 0);
 
             (sets, ways, line)
         } else {
-            let sets = read_bitfield!(ccsidr_el1, msb: 27, lsb: 13);
-            let ways = read_bitfield!(ccsidr_el1, msb: 12, lsb: 3);
-            let line = read_bitfield!(ccsidr_el1, msb: 2, lsb: 0);
+            let sets = bitfield_read!(ccsidr_el1, msb: 27, lsb: 13);
+            let ways = bitfield_read!(ccsidr_el1, msb: 12, lsb: 3);
+            let line = bitfield_read!(ccsidr_el1, msb: 2, lsb: 0);
 
             (sets, ways, line)
         };
@@ -130,19 +122,11 @@ impl Caches {
     pub fn get() -> Self {
         let mut impls = [CacheImpl::NoCache; 7];
 
-        let clidr_el1: u64 = unsafe {
-            let value;
-            asm!(
-                "mrs {}, CLIDR_EL1",
-                lateout(reg) value
-            );
-            value
-        };
-
-        let louis = read_bitfield!(clidr_el1, msb: 23, lsb: 21) as usize;
-        let loc = read_bitfield!(clidr_el1, msb: 26, lsb: 24) as usize;
-        let louu = read_bitfield!(clidr_el1, msb: 29, lsb: 27) as usize;
-        let icb = read_bitfield!(clidr_el1, msb: 32, lsb: 30) as usize;
+        let clidr_el1: u64 = sysreg_read!("CLIDR_EL1");
+        let louis = bitfield_read!(clidr_el1, msb: 23, lsb: 21) as usize;
+        let loc = bitfield_read!(clidr_el1, msb: 26, lsb: 24) as usize;
+        let louu = bitfield_read!(clidr_el1, msb: 29, lsb: 27) as usize;
+        let icb = bitfield_read!(clidr_el1, msb: 32, lsb: 30) as usize;
 
         let mut levels = 0;
         for level in 0..7 {

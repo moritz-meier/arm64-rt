@@ -18,16 +18,16 @@ pub struct ELy_AARCH64;
 pub struct ELy_AARCH32;
 
 pub trait Exceptions<T> {
-    fn sync_excp(frame: &mut ExceptionFrame) {
+    fn sync_excp(_frame: &mut ExceptionFrame) {
         loop {}
     }
-    fn irq(frame: &mut ExceptionFrame) {
+    fn irq(_frame: &mut ExceptionFrame) {
         loop {}
     }
-    fn fiq(frame: &mut ExceptionFrame) {
+    fn fiq(_frame: &mut ExceptionFrame) {
         loop {}
     }
-    fn serror(frame: &mut ExceptionFrame) {
+    fn serror(_frame: &mut ExceptionFrame) {
         loop {}
     }
 }
