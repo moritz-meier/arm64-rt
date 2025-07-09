@@ -2,12 +2,10 @@
 #![no_main]
 
 use core::arch::asm;
-use core::f32::consts::PI;
-use core::ptr::read_volatile;
 use core::sync::atomic::AtomicBool;
 use core::{cell::RefCell, fmt::Write, panic::PanicInfo, ptr::NonNull};
 
-use arm64::cache::ICache;
+use arm64::cache::{DCache, ICache};
 use spin::Mutex;
 
 use arm_pl011_uart::{
@@ -41,8 +39,7 @@ impl Exceptions<ELy_AARCH32> for ExcpsImpl {}
 #[entry(exceptions = ExcpsImpl)]
 unsafe fn main(info: EntryInfo) -> ! {
     ICache::enable();
-    ICache::invalidate_all();
-    ICache::invalidate((0x0 as *const u8)..=(0xffff as *const u8));
+    DCache::enable();
 
     if info.cpu_idx != 0 {
         loop {
@@ -51,6 +48,8 @@ unsafe fn main(info: EntryInfo) -> ! {
     }
 
     unsafe { init() };
+
+    DCache::op_all(arm64::cache::CacheOp::CleanInvalidate);
 
     {
         let uart = UART.lock();

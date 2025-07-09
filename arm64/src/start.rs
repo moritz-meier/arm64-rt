@@ -225,6 +225,8 @@ unsafe extern "C" fn core_a53_init() {
         "mrs x9, S3_1_C15_C2_1",        // Set SMPEN in CPUECTLR_EL1
         "orr x9, x9, #0x40",
         "msr S3_1_C15_C2_1, x9",
+
+        "ret",
     },)
 }
 

@@ -22,6 +22,10 @@ pub use start::*;
 
 #[macro_export]
 macro_rules! bitmask {
+    (bit: $bit:literal) => {
+        bitmask!(msb: $bit, lsb: $bit)
+    };
+
     (msb: $msb:literal, lsb: $lsb:literal) => {
         ((1 << ($msb - $lsb)) + ((1 << ($msb - $lsb)) - 1)) << $lsb
     };
@@ -29,6 +33,10 @@ macro_rules! bitmask {
 
 #[macro_export]
 macro_rules! read_bitfield {
+    ($register:expr, bit: $bit:literal) => {
+        ($register & crate::bitmask!(bit: $bit)) >> $lsb
+    };
+
     ($register:expr, msb: $msb:literal, lsb: $lsb:literal) => {
         ($register & crate::bitmask!(msb: $msb, lsb: $lsb)) >> $lsb
     };
