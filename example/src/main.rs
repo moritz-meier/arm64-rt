@@ -2,25 +2,18 @@
 #![no_main]
 
 use core::arch::asm;
-use core::sync::atomic::AtomicBool;
-use core::{cell::RefCell, fmt::Write, panic::PanicInfo, ptr::NonNull};
+use core::fmt::Write as FmtWrite;
+use core::panic::PanicInfo;
 
 use arm64::cache::{DCache, ICache};
+use arm64::{EntryInfo, entry, exceptions::*};
+
 use spin::Mutex;
 
-use arm_pl011_uart::{
-    DataBits, LineConfig, PL011Registers, Parity, StopBits, Uart, UniqueMmioPointer,
-};
+use embedded_hal_nb::serial::Write;
 
-use arm64::exceptions::{
-    ELx_SP_EL0, ELx_SP_ELx, ELy_AARCH32, ELy_AARCH64, ExceptionFrame, Exceptions,
-};
-use arm64::{EntryInfo, entry};
-
-const UART_ADDR: *mut PL011Registers = 0x9000000 as *mut PL011Registers;
-
-static LOCK: AtomicBool = AtomicBool::new(true);
-static UART: Mutex<RefCell<Option<Uart>>> = Mutex::new(RefCell::new(None));
+// use sel4_pl011_driver as uart;
+use sel4_zynqmp_xuartps_driver as uart;
 
 struct ExcpsImpl;
 impl Exceptions<ELx_SP_EL0> for ExcpsImpl {}
@@ -36,6 +29,12 @@ impl Exceptions<ELx_SP_ELx> for ExcpsImpl {
 impl Exceptions<ELy_AARCH64> for ExcpsImpl {}
 impl Exceptions<ELy_AARCH32> for ExcpsImpl {}
 
+// static UART_DRIVER: Mutex<uart::Driver> =
+//     Mutex::new(unsafe { uart::Driver::new_uninit(0x09000000 as *mut _) });
+
+static UART_DRIVER: Mutex<uart::Driver> =
+    Mutex::new(unsafe { uart::Driver::new_uninit(0x00FF000000 as *mut _) });
+
 #[entry(exceptions = ExcpsImpl)]
 unsafe fn main(info: EntryInfo) -> ! {
     ICache::enable();
@@ -47,44 +46,31 @@ unsafe fn main(info: EntryInfo) -> ! {
         }
     }
 
-    unsafe { init() };
+    UART_DRIVER.lock().init();
 
-    DCache::op_all(arm64::cache::CacheOp::CleanInvalidate);
-
-    {
-        let uart = UART.lock();
-        uart.borrow_mut()
-            .as_mut()
-            .unwrap()
-            .write_fmt(format_args!("Hello World! cpu_idx = {}\n", info.cpu_idx))
-            .unwrap();
-    }
+    UartWriter
+        .write_fmt(format_args!("Hello World! cpu_idx = {}", info.cpu_idx))
+        .unwrap();
 
     loop {
         unsafe { core::arch::asm!("nop") };
     }
 }
 
-unsafe fn init() {
-    let uart_ptr = unsafe { UniqueMmioPointer::new(NonNull::new(UART_ADDR).unwrap()) };
-    let mut uart = Uart::new(uart_ptr);
-
-    let line_config = LineConfig {
-        data_bits: DataBits::Bits8,
-        parity: Parity::None,
-        stop_bits: StopBits::One,
-    };
-    uart.enable(line_config, 115_200, 24_000_000).unwrap();
-
-    uart.write_fmt(format_args!("init\n")).unwrap();
-
-    {
-        let x = UART.lock();
-        x.borrow_mut().replace(uart);
-    }
-}
-
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
+}
+
+struct UartWriter;
+
+impl FmtWrite for UartWriter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let mut driver = UART_DRIVER.lock();
+        for c in s.chars() {
+            driver.write(c as u8).unwrap()
+        }
+
+        Ok(())
+    }
 }

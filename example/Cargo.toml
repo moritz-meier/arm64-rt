@@ -6,4 +6,9 @@ edition = "2024"
 [dependencies]
 arm64 = { path = "../arm64", features = ["cortex-a53"] }
 spin = "0.10.0"
-arm-pl011-uart = "0.3.1"
+
+embedded-hal-nb = "*"
+
+
+sel4-pl011-driver = { git = "https://github.com/moritz-meier/rust-sel4.git", branch = "feat/zynqmp-support" }
+sel4-zynqmp-xuartps-driver = { git = "https://github.com/moritz-meier/rust-sel4.git", branch = "feat/zynqmp-support" }
