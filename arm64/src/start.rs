@@ -222,9 +222,23 @@ unsafe extern "C" fn core_init<
 #[unsafe(naked)]
 unsafe extern "C" fn core_a53_init() {
     cfg_naked_asm!({
+        "cmp x20, #0x3",                // Check current EL
+        "b.eq 13f",
+        "cmp x20, #0x2",
+        "b.eq 12f",
+        "cmp x20, #0x1",
+        "b.eq 11f",
+        "b 10f",
+
+        "13:",                          // In EL3
         "mrs x9, S3_1_C15_C2_1",        // Set SMPEN in CPUECTLR_EL1
         "orr x9, x9, #0x40",
         "msr S3_1_C15_C2_1, x9",
+
+        "12:",                          // In EL2
+        "11:",                          // In EL1
+
+        "10:",                          // Other
 
         "ret",
     },)

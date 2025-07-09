@@ -14,11 +14,11 @@ impl ICache {
 
         dsb!("sy");
 
-        if current_el <= 3 {
+        if current_el == 3 {
             sysreg_write_bitfield!("SCTLR_EL3", bit: 12, value: 0b1);
         }
 
-        if current_el <= 2 {
+        if current_el == 2 {
             sysreg_write_bitfield!("SCTLR_EL2", bit: 12, value: 0b1);
         }
 
@@ -34,11 +34,11 @@ impl ICache {
 
         dsb!("sy");
 
-        if current_el <= 3 {
+        if current_el == 3 {
             sysreg_write_bitfield!("SCTLR_EL3", bit: 12, value: 0b0);
         }
 
-        if current_el <= 2 {
+        if current_el == 2 {
             sysreg_write_bitfield!("SCTLR_EL2", bit: 12, value: 0b0);
         }
 
