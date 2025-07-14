@@ -101,6 +101,7 @@ version = "0.1.0"
 dependencies = [
  "arm64",
  "embedded-hal-nb",
+ "quote",
  "sel4-pl011-driver",
  "sel4-zynqmp-xuartps-driver",
  "spin",

@@ -8,12 +8,11 @@ use core::panic::PanicInfo;
 use arm64::cache::{DCache, ICache};
 use arm64::{EntryInfo, entry, exceptions::*};
 
-use spin::Mutex;
-
 use embedded_hal_nb::serial::Write;
 
-// use sel4_pl011_driver as uart;
-use sel4_zynqmp_xuartps_driver as uart;
+mod plat;
+
+use plat::*;
 
 struct ExcpsImpl;
 impl Exceptions<ELx_SP_EL0> for ExcpsImpl {}
@@ -28,12 +27,6 @@ impl Exceptions<ELx_SP_ELx> for ExcpsImpl {
 }
 impl Exceptions<ELy_AARCH64> for ExcpsImpl {}
 impl Exceptions<ELy_AARCH32> for ExcpsImpl {}
-
-// static UART_DRIVER: Mutex<uart::Driver> =
-//     Mutex::new(unsafe { uart::Driver::new_uninit(0x09000000 as *mut _) });
-
-static UART_DRIVER: Mutex<uart::Driver> =
-    Mutex::new(unsafe { uart::Driver::new_uninit(0x00FF000000 as *mut _) });
 
 #[entry(exceptions = ExcpsImpl)]
 unsafe fn main(info: EntryInfo) -> ! {
