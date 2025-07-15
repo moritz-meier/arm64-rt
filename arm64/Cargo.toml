@@ -9,3 +9,4 @@ cortex-a53 = []
 [dependencies]
 entry-macro = { path = "macros/entry", features = ["arm64"] }
 cfg-asm = { path = "../macros/cfg-asm" }
+critical-section = { version = "1.2.0" }

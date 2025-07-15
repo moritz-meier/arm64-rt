@@ -20,6 +20,7 @@ pub mod exceptions;
 pub mod start;
 
 mod asm;
+mod lock;
 mod regs;
 
 pub use start::*;
