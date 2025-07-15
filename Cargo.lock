@@ -78,16 +78,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "embedded-alloc"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f2de9133f68db0d4627ad69db767726c99ff8585272716708227008d3f1bddd"
-dependencies = [
- "critical-section",
- "linked_list_allocator",
-]
-
-[[package]]
 name = "embedded-hal"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -117,13 +107,11 @@ name = "example"
 version = "0.1.0"
 dependencies = [
  "arm64",
- "embedded-alloc",
  "embedded-hal-nb",
  "quote",
  "sel4-pl011-driver",
  "sel4-zynqmp-xuartps-driver",
  "spin",
- "wasm-interpreter",
 ]
 
 [[package]]
@@ -158,18 +146,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
-name = "libm"
-version = "0.2.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
-
-[[package]]
-name = "linked_list_allocator"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afa463f5405ee81cdb9cc2baf37e08ec7e4c8209442b5d72c04cfb2cd6e6286"
-
-[[package]]
 name = "lock_api"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -178,12 +154,6 @@ dependencies = [
  "autocfg",
  "scopeguard",
 ]
-
-[[package]]
-name = "log"
-version = "0.4.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
 name = "nb"
@@ -240,7 +210,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 [[package]]
 name = "sel4-driver-interfaces"
 version = "0.1.0"
-source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#9824aa966ff7c8b09de88cd0cbee8a70a3435343"
+source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#0dc2e75a2c71ef2da008efac55cc628cf6f9a36e"
 dependencies = [
  "embedded-hal-nb",
  "heapless",
@@ -252,7 +222,7 @@ dependencies = [
 [[package]]
 name = "sel4-pl011-driver"
 version = "0.1.0"
-source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#9824aa966ff7c8b09de88cd0cbee8a70a3435343"
+source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#0dc2e75a2c71ef2da008efac55cc628cf6f9a36e"
 dependencies = [
  "embedded-hal-nb",
  "sel4-driver-interfaces",
@@ -262,7 +232,7 @@ dependencies = [
 [[package]]
 name = "sel4-zynqmp-xuartps-driver"
 version = "0.1.0"
-source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#9824aa966ff7c8b09de88cd0cbee8a70a3435343"
+source = "git+https://github.com/moritz-meier/rust-sel4.git?branch=feat%2Fzynqmp-support#0dc2e75a2c71ef2da008efac55cc628cf6f9a36e"
 dependencies = [
  "embedded-hal-nb",
  "sel4-driver-interfaces",
@@ -332,12 +302,3 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
-
-[[package]]
-name = "wasm-interpreter"
-version = "0.1.0"
-source = "git+https://github.com/moritz-meier/wasm-interpreter.git?branch=feat%2Ffuel#c2aa209201b5fe102d00dabe74d8cb4ee7c5cfe8"
-dependencies = [
- "libm",
- "log",
-]
