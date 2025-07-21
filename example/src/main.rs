@@ -6,7 +6,7 @@ use core::panic::PanicInfo;
 
 use arm64::cache::{DCache, ICache};
 use arm64::psci::Psci;
-use arm64::{EntryInfo, entry};
+use arm64::{EntryInfo, critical_section, entry};
 use arm64::{smccc::*, start};
 
 use embedded_hal_nb::serial::Write;
@@ -23,7 +23,9 @@ unsafe fn main(info: EntryInfo) -> ! {
     DCache::enable();
 
     if info.cpu_idx == 0 {
-        UART_DRIVER.lock().init();
+        critical_section::with(|cs| {
+            UART_DRIVER.borrow_ref_mut(cs).init();
+        })
     }
 
     UartWriter
@@ -52,10 +54,12 @@ struct UartWriter;
 
 impl FmtWrite for UartWriter {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        let mut driver = UART_DRIVER.lock();
-        for c in s.chars() {
-            driver.write(c as u8).unwrap()
-        }
+        critical_section::with(|cs| {
+            let mut driver = UART_DRIVER.borrow_ref_mut(cs);
+            for c in s.chars() {
+                driver.write(c as u8).unwrap()
+            }
+        });
 
         Ok(())
     }

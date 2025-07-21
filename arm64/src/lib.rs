@@ -1,7 +1,6 @@
 #![no_std]
 #![feature(fn_align)]
 #![feature(ptr_mask)]
-#![feature(generic_const_exprs)]
 
 #[cfg(not(target_arch = "aarch64"))]
 compile_error!("Only target_arch = \"aarch64\" is supported.");
@@ -22,7 +21,9 @@ pub mod smccc;
 pub mod start;
 
 mod asm;
-mod lock;
 mod regs;
+
+#[cfg(feature = "critical-section")]
+pub mod critical_section;
 
 pub use start::*;

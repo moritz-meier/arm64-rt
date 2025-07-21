@@ -9,8 +9,7 @@ qemu = []
 kr260 = []
 
 [dependencies]
-arm64 = { path = "../arm64", features = ["cortex-a53"] }
-spin = "0.10.0"
+arm64 = { path = "../arm64", features = ["critical-section", "cortex-a53"] }
 
 embedded-hal-nb = "*"
 

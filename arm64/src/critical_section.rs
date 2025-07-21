@@ -1,13 +1,13 @@
 use core::{arch::asm, ptr::addr_of_mut};
 
-use critical_section::{RawRestoreState, set_impl};
+pub use critical_section::*;
 
-struct CriticalSection;
-set_impl!(CriticalSection);
+struct CriticalSectionImpl;
+set_impl!(CriticalSectionImpl);
 
 static mut GLOBAL_LOCK: u64 = 0;
 
-unsafe impl critical_section::Impl for CriticalSection {
+unsafe impl critical_section::Impl for CriticalSectionImpl {
     unsafe fn acquire() -> RawRestoreState {
         unsafe {
             asm!(
