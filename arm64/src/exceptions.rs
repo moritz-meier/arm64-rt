@@ -1,13 +1,6 @@
 use cfg_asm::cfg_naked_asm;
 use core::arch::naked_asm;
 
-pub struct DefaultExceptions;
-
-impl Exceptions<ELx_SP_EL0> for DefaultExceptions {}
-impl Exceptions<ELx_SP_ELx> for DefaultExceptions {}
-impl Exceptions<ELy_AARCH64> for DefaultExceptions {}
-impl Exceptions<ELy_AARCH32> for DefaultExceptions {}
-
 #[allow(non_camel_case_types)]
 pub struct ELx_SP_EL0;
 #[allow(non_camel_case_types)]
@@ -17,20 +10,52 @@ pub struct ELy_AARCH64;
 #[allow(non_camel_case_types)]
 pub struct ELy_AARCH32;
 
-pub trait Exceptions<T> {
+pub trait Exceptions<EL> {
     fn sync_excp(_frame: &mut ExceptionFrame) {
         loop {}
     }
+
     fn irq(_frame: &mut ExceptionFrame) {
         loop {}
     }
+
     fn fiq(_frame: &mut ExceptionFrame) {
         loop {}
     }
+
     fn serror(_frame: &mut ExceptionFrame) {
         loop {}
     }
 }
+
+pub trait ExceptionVectors {
+    unsafe extern "C" fn sync_excp_elx_sp_el0() -> !;
+    unsafe extern "C" fn irq_elx_sp_el0() -> !;
+    unsafe extern "C" fn fiq_elx_sp_el0() -> !;
+    unsafe extern "C" fn serror_elx_sp_el0() -> !;
+
+    unsafe extern "C" fn sync_excp_elx_sp_elx() -> !;
+    unsafe extern "C" fn irq_elx_sp_elx() -> !;
+    unsafe extern "C" fn fiq_elx_sp_elx() -> !;
+    unsafe extern "C" fn serror_elx_sp_elx() -> !;
+
+    unsafe extern "C" fn sync_excp_ely_aarch64() -> !;
+    unsafe extern "C" fn irq_ely_aarch64() -> !;
+    unsafe extern "C" fn fiq_ely_aarch64() -> !;
+    unsafe extern "C" fn serror_ely_aarch64() -> !;
+
+    unsafe extern "C" fn sync_excp_ely_aarch32() -> !;
+    unsafe extern "C" fn irq_ely_aarch32() -> !;
+    unsafe extern "C" fn fiq_ely_aarch32() -> !;
+    unsafe extern "C" fn serror_ely_aarch32() -> !;
+}
+
+pub struct DefaultExceptions;
+
+impl Exceptions<ELx_SP_EL0> for DefaultExceptions {}
+impl Exceptions<ELx_SP_ELx> for DefaultExceptions {}
+impl Exceptions<ELy_AARCH64> for DefaultExceptions {}
+impl Exceptions<ELy_AARCH32> for DefaultExceptions {}
 
 pub struct ExceptionFrame {
     pub x0: u64,
@@ -59,15 +84,13 @@ pub struct ExceptionFrame {
 
 #[unsafe(naked)]
 #[repr(align(2048))]
-pub unsafe extern "C" fn vectors<
-    Impl: Exceptions<ELx_SP_EL0>
-        + Exceptions<ELx_SP_ELx>
-        + Exceptions<ELy_AARCH64>
-        + Exceptions<ELy_AARCH32>,
->() -> ! {
+pub unsafe extern "C" fn vector_table<ExcpVecs>() -> !
+where
+    ExcpVecs: ExceptionVectors,
+{
     cfg_naked_asm!({
         ".balign 0x80",
-        "b {sync_elx_sp_el0}",
+        "b {sync_excp_elx_sp_el0}",
 
         ".balign 0x80",
         "b {irq_elx_sp_el0}",
@@ -79,7 +102,7 @@ pub unsafe extern "C" fn vectors<
         "b {serror_elx_sp_el0}",
 
         ".balign 0x80",
-        "b {sync_elx_sp_elx}",
+        "b {sync_excp_elx_sp_elx}",
 
         ".balign 0x80",
         "b {irq_elx_sp_elx}",
@@ -91,7 +114,7 @@ pub unsafe extern "C" fn vectors<
         "b {serror_elx_sp_elx}",
 
         ".balign 0x80",
-        "b {sync_ely_aarch64}",
+        "b {sync_excp_ely_aarch64}",
 
         ".balign 0x80",
         "b {irq_ely_aarch64}",
@@ -103,7 +126,7 @@ pub unsafe extern "C" fn vectors<
         "b {serror_ely_aarch64}",
 
         ".balign 0x80",
-        "b {sync_ely_aarch32}",
+        "b {sync_excp_ely_aarch32}",
 
         ".balign 0x80",
         "b {irq_ely_aarch32}",
@@ -114,25 +137,25 @@ pub unsafe extern "C" fn vectors<
         ".balign 0x80",
         "b {serror_ely_aarch32}",
     },
-        sync_elx_sp_el0 = sym sync_excp_entry::<ELx_SP_EL0, Impl>,
-        irq_elx_sp_el0 = sym irq_entry::<ELx_SP_EL0, Impl>,
-        fiq_elx_sp_el0 = sym fiq_entry::<ELx_SP_EL0, Impl>,
-        serror_elx_sp_el0 = sym serror_entry::<ELx_SP_EL0, Impl>,
+        sync_excp_elx_sp_el0 = sym ExcpVecs::sync_excp_elx_sp_el0,
+        irq_elx_sp_el0 = sym  ExcpVecs::irq_elx_sp_el0,
+        fiq_elx_sp_el0 = sym  ExcpVecs::fiq_elx_sp_el0,
+        serror_elx_sp_el0 = sym ExcpVecs::serror_elx_sp_el0,
 
-        sync_elx_sp_elx = sym sync_excp_entry::<ELx_SP_ELx, Impl>,
-        irq_elx_sp_elx = sym irq_entry::<ELx_SP_ELx, Impl>,
-        fiq_elx_sp_elx = sym fiq_entry::<ELx_SP_ELx, Impl>,
-        serror_elx_sp_elx = sym serror_entry::<ELx_SP_ELx, Impl>,
+        sync_excp_elx_sp_elx = sym ExcpVecs::sync_excp_elx_sp_elx,
+        irq_elx_sp_elx = sym ExcpVecs::irq_elx_sp_elx,
+        fiq_elx_sp_elx = sym ExcpVecs::fiq_elx_sp_elx,
+        serror_elx_sp_elx = sym ExcpVecs::serror_elx_sp_elx,
 
-        sync_ely_aarch64 = sym sync_excp_entry::<ELy_AARCH64, Impl>,
-        irq_ely_aarch64 = sym irq_entry::<ELy_AARCH64, Impl>,
-        fiq_ely_aarch64 = sym fiq_entry::<ELy_AARCH64, Impl>,
-        serror_ely_aarch64 = sym serror_entry::<ELy_AARCH64, Impl>,
+        sync_excp_ely_aarch64 = sym ExcpVecs::sync_excp_ely_aarch64,
+        irq_ely_aarch64 = sym ExcpVecs::irq_ely_aarch64,
+        fiq_ely_aarch64 = sym ExcpVecs::fiq_ely_aarch64,
+        serror_ely_aarch64 = sym ExcpVecs::serror_ely_aarch64,
 
-        sync_ely_aarch32 = sym sync_excp_entry::<ELy_AARCH32, Impl>,
-        irq_ely_aarch32 = sym irq_entry::<ELy_AARCH32, Impl>,
-        fiq_ely_aarch32 = sym fiq_entry::<ELy_AARCH32, Impl>,
-        serror_ely_aarch32 = sym serror_entry::<ELy_AARCH32, Impl>,
+        sync_excp_ely_aarch32 = sym ExcpVecs::sync_excp_ely_aarch32,
+        irq_ely_aarch32 = sym ExcpVecs::irq_ely_aarch32,
+        fiq_ely_aarch32 = sym ExcpVecs::fiq_ely_aarch32,
+        serror_ely_aarch32 = sym ExcpVecs::serror_ely_aarch32,
     )
 }
 
@@ -168,70 +191,108 @@ macro_rules! restore_regs {
     };
 }
 
-#[unsafe(naked)]
-unsafe extern "C" fn sync_excp_entry<T, Impl: Exceptions<T>>() {
-    cfg_naked_asm!(
-        {
-            save_regs!(),
+macro_rules! excp_vector {
+    ($excp_sym:expr) => {
+        cfg_naked_asm!(
+            {
+                save_regs!(),
 
-            "mov x0, sp",
-            "bl {sync_excp}",
+                "mov x0, sp",
+                "bl {excp}",
 
-            restore_regs!(),
+                restore_regs!(),
 
-            "eret",
-        },
-            sync_excp = sym Impl::sync_excp
-    )
+                "eret",
+            },
+                excp = sym $excp_sym,
+        )
+    };
 }
 
-#[unsafe(naked)]
-unsafe extern "C" fn irq_entry<T, Impl: Exceptions<T>>() {
-    cfg_naked_asm!(
-        {
-            save_regs!(),
+impl<T> ExceptionVectors for T
+where
+    T: Exceptions<ELx_SP_EL0>
+        + Exceptions<ELx_SP_ELx>
+        + Exceptions<ELy_AARCH64>
+        + Exceptions<ELy_AARCH32>,
+{
+    #[unsafe(naked)]
+    unsafe extern "C" fn sync_excp_elx_sp_el0() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_EL0>>::sync_excp)
+    }
 
-            "mov x0, sp",
-            "bl {irq}",
+    #[unsafe(naked)]
+    unsafe extern "C" fn irq_elx_sp_el0() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_EL0>>::irq)
+    }
 
-            restore_regs!(),
+    #[unsafe(naked)]
+    unsafe extern "C" fn fiq_elx_sp_el0() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_EL0>>::fiq)
+    }
 
-            "eret",
-        },
-            irq = sym Impl::irq
-    )
-}
+    #[unsafe(naked)]
+    unsafe extern "C" fn serror_elx_sp_el0() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_EL0>>::serror)
+    }
 
-#[unsafe(naked)]
-unsafe extern "C" fn fiq_entry<T, Impl: Exceptions<T>>() {
-    cfg_naked_asm!(
-        {
-            save_regs!(),
+    #[unsafe(naked)]
+    unsafe extern "C" fn sync_excp_elx_sp_elx() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_ELx>>::sync_excp)
+    }
 
-            "mov x0, sp",
-            "bl {fiq}",
+    #[unsafe(naked)]
+    unsafe extern "C" fn irq_elx_sp_elx() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_ELx>>::irq)
+    }
 
-            restore_regs!(),
+    #[unsafe(naked)]
+    unsafe extern "C" fn fiq_elx_sp_elx() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_ELx>>::fiq)
+    }
 
-            "eret",
-        },
-            fiq = sym Impl::fiq
-    )
-}
+    #[unsafe(naked)]
+    unsafe extern "C" fn serror_elx_sp_elx() -> ! {
+        excp_vector!(<T as Exceptions<ELx_SP_ELx>>::serror)
+    }
 
-#[unsafe(naked)]
-unsafe extern "C" fn serror_entry<T, Impl: Exceptions<T>>() {
-    cfg_naked_asm!(
-        {
-            save_regs!(),
+    #[unsafe(naked)]
+    unsafe extern "C" fn sync_excp_ely_aarch64() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH64>>::sync_excp)
+    }
 
-            "mov x0, sp",
-            "bl {serror}",
+    #[unsafe(naked)]
+    unsafe extern "C" fn irq_ely_aarch64() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH64>>::irq)
+    }
 
-            restore_regs!(),
+    #[unsafe(naked)]
+    unsafe extern "C" fn fiq_ely_aarch64() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH64>>::fiq)
+    }
 
-            "eret",
-        },
-            serror = sym Impl::serror
-    )
+    #[unsafe(naked)]
+    unsafe extern "C" fn serror_ely_aarch64() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH64>>::serror)
+    }
+
+    #[unsafe(naked)]
+    unsafe extern "C" fn sync_excp_ely_aarch32() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH32>>::sync_excp)
+    }
+
+    #[unsafe(naked)]
+    unsafe extern "C" fn irq_ely_aarch32() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH32>>::irq)
+    }
+
+    #[unsafe(naked)]
+    unsafe extern "C" fn fiq_ely_aarch32() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH32>>::fiq)
+    }
+
+    #[unsafe(naked)]
+    unsafe extern "C" fn serror_ely_aarch32() -> ! {
+        excp_vector!(<T as Exceptions<ELy_AARCH32>>::serror)
+    }
 }

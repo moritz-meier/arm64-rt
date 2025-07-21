@@ -6,15 +6,15 @@ pub use entry_macro::entry;
 
 use crate::exceptions::*;
 
+pub trait Entry {
+    unsafe extern "C" fn entry(info: EntryInfo) -> !;
+}
+
 pub struct EntryInfo {
     pub param: u64,
     pub current_el: usize,
     pub cpu_idx: usize,
     pub num_cores: usize,
-}
-
-pub trait Entry {
-    unsafe extern "C" fn entry(info: EntryInfo) -> !;
 }
 
 /*
@@ -34,13 +34,7 @@ pub trait Entry {
 static mut SEC_CORE_LOCK: usize = 1;
 
 #[unsafe(naked)]
-pub unsafe extern "C" fn start<
-    EntryImpl: Entry,
-    Excps: Exceptions<ELx_SP_EL0>
-        + Exceptions<ELx_SP_ELx>
-        + Exceptions<ELy_AARCH64>
-        + Exceptions<ELy_AARCH32>,
->() -> ! {
+pub unsafe extern "C" fn start<EntryImpl: Entry, ExcpVecs: ExceptionVectors>() -> ! {
     cfg_naked_asm!({
         "mov x23, x0",                  // save param (fdt phys addr)
 
@@ -124,19 +118,14 @@ pub unsafe extern "C" fn start<
         "b 100b",
     },
     sec_core_lock = sym SEC_CORE_LOCK,
-    core_init = sym core_init::<Excps>,
+    core_init = sym core_init::<ExcpVecs>,
     core_a53_init = sym core_a53_init,
     rust_init = sym rust_init,
     rust_entry = sym rust_entry::<EntryImpl>);
 }
 
 #[unsafe(naked)]
-unsafe extern "C" fn core_init<
-    Excps: Exceptions<ELx_SP_EL0>
-        + Exceptions<ELx_SP_ELx>
-        + Exceptions<ELy_AARCH64>
-        + Exceptions<ELy_AARCH32>,
->() {
+unsafe extern "C" fn core_init<ExcpVecs: ExceptionVectors>() {
     cfg_naked_asm!({
         "msr DAIFSet, 0xF",             // Mask all exceptions
 
@@ -213,7 +202,7 @@ unsafe extern "C" fn core_init<
         spsr_el2 = const SPSR_EL2_INIT,
         spsr_el1 = const SPSR_EL1_INIT,
 
-        vectors = sym vectors::<Excps>,
+        vectors = sym vector_table::<ExcpVecs>,
 
         cpacr_el1 = const CPACR_EL1_INIT,
     )

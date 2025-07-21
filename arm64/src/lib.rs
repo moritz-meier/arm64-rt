@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(fn_align)]
 #![feature(ptr_mask)]
-#![feature(stdarch_arm_barrier)]
+#![feature(generic_const_exprs)]
 
 #[cfg(not(target_arch = "aarch64"))]
 compile_error!("Only target_arch = \"aarch64\" is supported.");
@@ -17,6 +17,8 @@ compile_error!("A ARMv8A impl \"{cortex-a53, }\" must be selected.");
 
 pub mod cache;
 pub mod exceptions;
+pub mod psci;
+pub mod smccc;
 pub mod start;
 
 mod asm;
