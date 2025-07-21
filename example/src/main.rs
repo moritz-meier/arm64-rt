@@ -1,49 +1,41 @@
 #![no_std]
 #![no_main]
 
-use core::arch::asm;
 use core::fmt::Write as FmtWrite;
 use core::panic::PanicInfo;
 
 use arm64::cache::{DCache, ICache};
-use arm64::{EntryInfo, entry, exceptions::*};
+use arm64::psci::Psci;
+use arm64::{EntryInfo, entry};
+use arm64::{smccc::*, start};
 
 use embedded_hal_nb::serial::Write;
 
+mod excps;
 mod plat;
 
+use excps::*;
 use plat::*;
 
-struct ExcpsImpl;
-impl Exceptions<ELx_SP_EL0> for ExcpsImpl {}
-impl Exceptions<ELx_SP_ELx> for ExcpsImpl {
-    fn sync_excp(_frame: &mut ExceptionFrame) {
-        loop {}
-    }
-
-    fn serror(_frame: &mut ExceptionFrame) {
-        loop {}
-    }
-}
-impl Exceptions<ELy_AARCH64> for ExcpsImpl {}
-impl Exceptions<ELy_AARCH32> for ExcpsImpl {}
-
-#[entry(exceptions = ExcpsImpl)]
+#[entry(exceptions = Excps)]
 unsafe fn main(info: EntryInfo) -> ! {
     ICache::enable();
     DCache::enable();
 
-    if info.cpu_idx != 0 {
-        loop {
-            unsafe { asm!("wfe") }
-        }
+    if info.cpu_idx == 0 {
+        UART_DRIVER.lock().init();
     }
-
-    UART_DRIVER.lock().init();
 
     UartWriter
         .write_fmt(format_args!("Hello World! cpu_idx = {}", info.cpu_idx))
         .unwrap();
+
+    Psci::cpu_on_64::<Smccc<SMC>>(
+        (info.cpu_idx + 1) as u64,
+        (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
+        0,
+    )
+    .unwrap();
 
     loop {
         unsafe { core::arch::asm!("nop") };
@@ -52,6 +44,7 @@ unsafe fn main(info: EntryInfo) -> ! {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    Psci::system_off::<Smccc<SMC>>().unwrap();
     loop {}
 }
 
