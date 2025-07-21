@@ -46,7 +46,7 @@ unsafe fn main(info: EntryInfo) -> ! {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    Psci::system_off::<Smccc<SMC>>().unwrap();
+    Psci::system_reset::<Smccc<SMC>>().unwrap();
     loop {}
 }
 
