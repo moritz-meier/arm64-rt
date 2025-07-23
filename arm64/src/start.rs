@@ -10,6 +10,7 @@ pub trait Entry {
     unsafe extern "C" fn entry(info: EntryInfo) -> !;
 }
 
+#[repr(C)]
 pub struct EntryInfo {
     pub param: u64,
     pub current_el: usize,
