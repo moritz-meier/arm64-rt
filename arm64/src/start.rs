@@ -4,7 +4,7 @@ use cfg_asm::cfg_naked_asm;
 
 pub use entry_macro::entry;
 
-use crate::exceptions::*;
+use crate::{exceptions::*, sys_regs::*};
 
 pub trait Entry {
     unsafe extern "C" fn entry(info: EntryInfo) -> !;
@@ -186,26 +186,23 @@ unsafe extern "C" fn core_init<ExcpVecs: ExceptionVectors>() {
         "ldr x9, ={vectors}",           // Set VBAR_EL1
         "msr VBAR_EL1, x9",
 
-        "ldr x9, ={cpacr_el1}",         // Set CPACR_EL1
-        "msr CPACR_EL1, x9",
+        "msr CPACR_EL1, xzr",           // Trap SIMD, FPU
 
         "ret",
     },
 
-        sctlr_el3 = const SCTLR_EL3_INIT,
-        sctlr_el2 = const SCTLR_EL2_INIT,
-        sctlr_el1 = const SCTLR_EL1_INIT,
+        sctlr_el3 = const SCTLR_EL3_INIT.raw_value(),
+        sctlr_el2 = const SCTLR_EL2_INIT.raw_value(),
+        sctlr_el1 = const SCTLR_EL1_INIT.raw_value(),
 
-        scr_el3 = const SCR_EL3_INIT,
-        hcr_el2 = const HCR_EL2_INIT,
+        scr_el3 = const SCR_EL3_INIT.raw_value(),
+        hcr_el2 = const HCR_EL2_INIT.raw_value(),
 
-        spsr_el3 = const SPSR_EL3_INIT,
-        spsr_el2 = const SPSR_EL2_INIT,
-        spsr_el1 = const SPSR_EL1_INIT,
+        spsr_el3 = const SPSR_EL3_INIT.raw_value(),
+        spsr_el2 = const SPSR_EL2_INIT.raw_value(),
+        spsr_el1 = const SPSR_EL1_INIT.raw_value(),
 
         vectors = sym vector_table::<ExcpVecs>,
-
-        cpacr_el1 = const CPACR_EL1_INIT,
     )
 }
 
@@ -294,65 +291,38 @@ unsafe extern "C" fn rust_entry<EntryImpl: Entry>(
     }
 }
 
-const SCTLR_EL3_INIT: u64 = SCTLR_EL3_RES1; // Reserved 1 Bits must be set
-const SCTLR_EL3_RES1: u64 = (1 << 29)
-    | (1 << 28)
-    | (1 << 23)
-    | (1 << 22)
-    | (1 << 18)
-    | (1 << 16)
-    | (1 << 11)
-    | (1 << 5)
-    | (1 << 4);
+const SCTLR_EL3_INIT: SCTLR_EL3 = SCTLR_EL3::DEFAULT;
+const SCTLR_EL2_INIT: SCTLR_EL2 = SCTLR_EL2::DEFAULT;
+const SCTLR_EL1_INIT: SCTLR_EL1 = SCTLR_EL1::DEFAULT;
 
-const SCTLR_EL2_INIT: u64 = SCTLR_EL2_RES1; // Reserved 1 Bits must be set
-const SCTLR_EL2_RES1: u64 = (1 << 29)
-    | (1 << 28)
-    | (1 << 23)
-    | (1 << 22)
-    | (1 << 18)
-    | (1 << 16)
-    | (1 << 11)
-    | (1 << 5)
-    | (1 << 4);
+const SCR_EL3_INIT: SCR_EL3 = SCR_EL3::DEFAULT
+    .with_EA(true)
+    .with_FIQ(true)
+    .with_IRQ(true)
+    .with_NS(true);
 
-const SCTLR_EL1_INIT: u64 = SCTLR_EL1_RES1; // Reserved 1 Bits must be set
-const SCTLR_EL1_RES1: u64 = (1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | (1 << 20) | (1 << 11);
+const HCR_EL2_INIT: HCR_EL2 = HCR_EL2::DEFAULT
+    .with_AMO(true)
+    .with_IMO(true)
+    .with_FMO(true);
 
-const SCR_EL3_RES1: u64 = (1 << 5) | (1 << 4);
-const SCR_EL3_NS_BIT: usize = 0;
-const SCR_EL3_IRQ_BIT: usize = 1;
-const SCR_EL3_FIQ_BIT: usize = 2;
-const SCR_EL3_EA_BIT: usize = 3;
-const SCR_EL3_INIT: u64 = SCR_EL3_RES1                  // Reserved 1 Bits must be set
-    | (1 << SCR_EL3_EA_BIT)                             // Take SError, FIQ, IRQ to EL3
-    | (1 << SCR_EL3_FIQ_BIT)
-    | (1 << SCR_EL3_IRQ_BIT)
-    | (1 << SCR_EL3_NS_BIT); // Lower ELs are non-secure
+const SPSR_EL3_INIT: SPSR_EL3 = SPSR_EL3::DEFAULT
+    .with_D(true)
+    .with_A(true)
+    .with_I(true)
+    .with_F(true)
+    .with_M(spsr_el3::M::AARCH64_EL3_SP_EL3);
 
-const HCR_EL2_RES1: u64 = 0;
-const HCR_EL2_FMO_BIT: usize = 3;
-const HCR_EL2_IMO_BIT: usize = 4;
-const HCR_EL2_AMO_BIT: usize = 5;
-const HCR_EL2_INIT: u64 = HCR_EL2_RES1                  // Reserved 1 Bits must be set
-    | (1 << HCR_EL2_AMO_BIT)                            // Take SError, IRQ, FIQ to EL2
-    | (1 << HCR_EL2_IMO_BIT)
-    | (1 << HCR_EL2_FMO_BIT);
+const SPSR_EL2_INIT: SPSR_EL2 = SPSR_EL2::DEFAULT
+    .with_D(true)
+    .with_A(true)
+    .with_I(true)
+    .with_F(true)
+    .with_M(spsr_el2::M::AARCH64_EL2_SP_EL2);
 
-const SPSR_EL3_M_BIT: usize = 0;
-const SPSR_EL3_DAIF_BIT: usize = 6;
-const SPSR_EL3_INIT: u64 = (0xF << SPSR_EL3_DAIF_BIT)   // Mask interrupts on eret
-    | (0b01101 << SPSR_EL3_M_BIT); // Return to AArch64 EL3 and SP_EL3 on eret
-
-const SPSR_EL2_M_BIT: usize = 0;
-const SPSR_EL2_DAIF_BIT: usize = 6;
-const SPSR_EL2_INIT: u64 = (0xF << SPSR_EL2_DAIF_BIT)   // Mask interrupts on eret
-    | (0b01001 << SPSR_EL2_M_BIT); // Return to AArch64 EL2 and SP_EL2 on eret
-
-const SPSR_EL1_M_BIT: usize = 0;
-const SPSR_EL1_DAIF_BIT: usize = 6;
-const SPSR_EL1_INIT: u64 = (0xF << SPSR_EL1_DAIF_BIT)   // Mask interrupts on eret
-    | (0b00101 << SPSR_EL1_M_BIT); // Return to AArch64 EL1 and SP_EL1 on eret
-
-const CPACR_EL1_FPEN_BIT: usize = 20;
-const CPACR_EL1_INIT: u64 = 0b11 << CPACR_EL1_FPEN_BIT; // Enable FP and SIMD
+const SPSR_EL1_INIT: SPSR_EL1 = SPSR_EL1::DEFAULT
+    .with_D(true)
+    .with_A(true)
+    .with_I(true)
+    .with_F(true)
+    .with_M(spsr_el1::M::AARCH64_EL1_SP_EL1);

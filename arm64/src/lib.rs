@@ -19,6 +19,7 @@ pub mod exceptions;
 pub mod psci;
 pub mod smccc;
 pub mod start;
+pub mod sys_regs;
 
 mod asm;
 mod regs;
