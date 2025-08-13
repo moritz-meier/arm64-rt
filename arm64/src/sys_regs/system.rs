@@ -2,24 +2,51 @@
 #![allow(non_snake_case)]
 
 system_register! {
+    pub CURRENT_EL(
+        "CurrentEL", u64, r
+    ) {
+        #[bits(2..=3, r)]
+        EL: u2
+    }
+}
+
+system_register! {
     pub SCTLR_EL3(
         "SCTLR_EL3", u64, rw,
         res1 = (1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | (1 << 18) | (1 << 16) | (1 << 11) | (1 << 5) | (1 << 4)
-    );
+    ) {
+        #[bit(2, rw)]
+        C: bool,
+
+        #[bit(12, rw)]
+        I: bool
+    }
 }
 
 system_register! {
     pub SCTLR_EL2(
         "SCTLR_EL2", u64, rw,
         res1 = (1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | (1 << 18) | (1 << 16) | (1 << 11) | (1 << 5) | (1 << 4)
-    );
+    ) {
+        #[bit(2, rw)]
+        C: bool,
+
+        #[bit(12, rw)]
+        I: bool
+    }
 }
 
 system_register! {
     pub SCTLR_EL1(
         "SCTLR_EL1", u64, rw,
         res1 = (1 << 29) | (1 << 28) | (1 << 23) | (1 << 22) | (1 << 20) | (1 << 11)
-    );
+    ) {
+        #[bit(2, rw)]
+        C: bool,
+
+        #[bit(12, rw)]
+        I: bool
+    }
 }
 
 system_register! {
@@ -68,7 +95,7 @@ system_register! {
     }
 
     #[bitenum(u5, exhaustive = false)]
-    enum M {
+    pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,
         AARCH64_EL1_SP_EL0 = 0b00100,
         AARCH64_EL1_SP_EL1 = 0b00101,
@@ -96,7 +123,7 @@ system_register! {
     }
 
     #[bitenum(u5, exhaustive = false)]
-    enum M {
+    pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,
         AARCH64_EL1_SP_EL0 = 0b00100,
         AARCH64_EL1_SP_EL1 = 0b00101,
@@ -122,7 +149,7 @@ system_register! {
     }
 
     #[bitenum(u5, exhaustive = false)]
-    enum M {
+    pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,
         AARCH64_EL1_SP_EL0 = 0b00100,
         AARCH64_EL1_SP_EL1 = 0b00101,

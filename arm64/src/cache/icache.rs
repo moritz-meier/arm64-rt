@@ -1,6 +1,6 @@
 use core::{arch::asm, ops::RangeInclusive};
 
-use crate::{dsb, isb, sysreg_read_bitfield, sysreg_write_bitfield};
+use crate::{dsb, isb};
 
 use super::*;
 
@@ -10,40 +10,30 @@ impl ICache {
     pub fn enable() {
         Self::invalidate_all();
 
-        let current_el: usize = sysreg_read_bitfield!("CurrentEL", msb: 3, lsb: 2);
+        let current_el = CURRENT_EL.read().EL().value();
 
         dsb!("sy");
 
-        if current_el == 3 {
-            sysreg_write_bitfield!("SCTLR_EL3", bit: 12, value: 0b1);
-        }
-
-        if current_el == 2 {
-            sysreg_write_bitfield!("SCTLR_EL2", bit: 12, value: 0b1);
-        }
-
-        if current_el == 1 {
-            sysreg_write_bitfield!("SCTLR_EL1", bit: 12, value: 0b1);
+        match current_el {
+            3 => SCTLR_EL3.modify(|sctlr_el3| sctlr_el3.with_I(true)),
+            2 => SCTLR_EL2.modify(|sctlr_el2| sctlr_el2.with_I(true)),
+            1 => SCTLR_EL1.modify(|sctlr_el1| sctlr_el1.with_I(true)),
+            _ => (),
         }
 
         isb!("sy");
     }
 
     pub fn disable() {
-        let current_el: usize = sysreg_read_bitfield!("CurrentEL", msb: 3, lsb: 2);
+        let current_el = CURRENT_EL.read().EL().value();
 
         dsb!("sy");
 
-        if current_el == 3 {
-            sysreg_write_bitfield!("SCTLR_EL3", bit: 12, value: 0b0);
-        }
-
-        if current_el == 2 {
-            sysreg_write_bitfield!("SCTLR_EL2", bit: 12, value: 0b0);
-        }
-
-        if current_el == 1 {
-            sysreg_write_bitfield!("SCTLR_EL1", bit: 12, value: 0b0);
+        match current_el {
+            3 => SCTLR_EL3.modify(|sctlr_el3| sctlr_el3.with_I(false)),
+            2 => SCTLR_EL2.modify(|sctlr_el2| sctlr_el2.with_I(false)),
+            1 => SCTLR_EL1.modify(|sctlr_el1| sctlr_el1.with_I(false)),
+            _ => (),
         }
 
         isb!("sy");
@@ -62,12 +52,12 @@ impl ICache {
             return;
         };
 
-        let start = range.start().mask(!(info.linesize - 1));
+        let start = range.start().mask(!(info.linesize as usize - 1));
         let end = unsafe {
             range
                 .end()
-                .mask(!(info.linesize - 1))
-                .byte_add(info.linesize - 1)
+                .mask(!(info.linesize as usize - 1))
+                .byte_add(info.linesize as usize - 1)
         };
 
         dsb!("sy");
@@ -82,7 +72,7 @@ impl ICache {
                 asm!("ic ivau, {:x}", in(reg) addr);
             }
 
-            addr = unsafe { addr.byte_add(info.linesize) };
+            addr = unsafe { addr.byte_add(info.linesize as usize) };
         }
 
         isb!("sy")

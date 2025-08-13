@@ -6,7 +6,7 @@ macro_rules! system_register {
             $(,res0 = $res0:expr)?
             $(,res1 = $res1:expr)?)
             $fields:tt
-            $($(#[$enum_attrs:meta])? enum $enum_name:ident $enum_values:tt)*
+            $($(#[$enum_attrs:meta])? $enum_vis:vis enum $enum_name:ident $enum_values:tt)*
         } => {
         pastey::paste! {
             pub use [<$name:lower>]::$name;
@@ -25,6 +25,8 @@ macro_rules! system_register {
                     $vis impl Register($reg_name, $name($t), $access $(,res0 = $res0)? $(,res1 = $res1)?)
                 }
 
+                #[allow(unused)]
+                use arbitrary_int::*;
                 use bitbybit::*;
 
                 system_register_bitfields! {
@@ -33,7 +35,7 @@ macro_rules! system_register {
 
                 $(
                     $(#[$enum_attrs])*
-                    $vis enum $enum_name $enum_values
+                    $enum_vis enum $enum_name $enum_values
                 )*
             }
         }
@@ -74,6 +76,10 @@ macro_rules! impl_system_register {
             impl_sysreg_write!{
                 $vis fn write($reg_name, $valtyp, $t)
             }
+
+            impl_sysreg_modify!{
+                $vis fn modify($reg_name, $valtyp, $t)
+            }
         }
     };
 }
@@ -107,6 +113,16 @@ macro_rules! impl_sysreg_write {
     };
 }
 
+macro_rules! impl_sysreg_modify {
+    ($vis:vis fn modify($reg_name:literal, $valtyp:ty, $t:ty)) => {
+        $vis fn modify(&self, f: impl Fn($valtyp) -> $valtyp) {
+            let reg = self.read();
+            let reg = f(reg);
+            self.write(reg);
+        }
+    };
+}
+
 macro_rules! system_register_bitfields {
     ($vis:vis struct $name:ident($t:ty $(,default = $default:expr)?) $fields:tt) => {
         #[bitfield($t $(,default = $default)?)]
@@ -124,6 +140,10 @@ macro_rules! expr_or_default {
     };
 }
 
+mod cache;
+mod id;
 mod system;
 
+pub use cache::*;
+pub use id::*;
 pub use system::*;

@@ -1,6 +1,6 @@
-use core::{arch::asm, ops::RangeInclusive, usize};
+use core::{ops::RangeInclusive, usize};
 
-use crate::{bitfield_read, bitmask, sysreg_read, sysreg_write};
+use arbitrary_int::*;
 
 mod dcache;
 mod icache;
@@ -8,10 +8,12 @@ mod icache;
 pub use dcache::*;
 pub use icache::*;
 
+use crate::sys_regs::*;
+
 #[derive(Clone, Copy)]
 pub enum Cache {
-    Instruction { idx: usize },
-    DataOrUnified { idx: usize },
+    Instruction { idx: u8 },
+    DataOrUnified { idx: u8 },
 }
 
 impl Cache {
@@ -34,9 +36,9 @@ pub enum CacheOp {
 #[derive(Clone, Copy)]
 pub struct CacheInfo {
     pub cache: Cache,
-    pub linesize: usize,
-    pub num_ways: usize,
-    pub num_sets: usize,
+    pub linesize: u16,
+    pub num_ways: u32,
+    pub num_sets: u32,
 }
 
 impl CacheInfo {
@@ -48,7 +50,7 @@ impl CacheInfo {
 
         let Caches { impls, .. } = Caches::get();
 
-        let Some(cache_impl) = impls.get(idx) else {
+        let Some(cache_impl) = impls.get(idx as usize) else {
             return None;
         };
 
@@ -56,34 +58,34 @@ impl CacheInfo {
             return None;
         }
 
-        let id_aa64mmfr2_el1: u64 = sysreg_read!("ID_AA64MMFR2_EL1");
-        let ccsidr_el1: u64 = sysreg_read!("CCSIDR_EL1");
+        CSSELR_EL1.modify(|csselr_el1| csselr_el1.with_LEVEL(u3::from_u8(idx)).with_InD(icache));
 
-        let csselr_el1: u64 = ((idx as u64) << 1) | ({ if icache { 0b1 } else { 0b0 } } << 0);
-        sysreg_write!("CSSELR_EL1", csselr_el1);
+        let feat_ccidx = ID_AA64MMFR2_EL1.read().CCIDX();
+        if feat_ccidx.value() > 0 {
+            let ccsidr_el1 = CCSIDR_EL1_CCIDX.read();
+            let sets = ccsidr_el1.NUM_SETS().value();
+            let ways = ccsidr_el1.ASSOCIATIVITY().value();
+            let line = ccsidr_el1.LINE_SIZE().value();
 
-        let feat_ccidx = bitfield_read!(id_aa64mmfr2_el1, msb: 23, lsb: 20);
-
-        let (sets, ways, line) = if feat_ccidx > 0 {
-            let sets = bitfield_read!(ccsidr_el1, msb: 55, lsb: 32);
-            let ways = bitfield_read!(ccsidr_el1, msb: 23, lsb: 3);
-            let line = bitfield_read!(ccsidr_el1, msb: 2, lsb: 0);
-
-            (sets, ways, line)
+            Some(CacheInfo {
+                cache,
+                linesize: 1 << (line + 4),
+                num_ways: ways + 1,
+                num_sets: sets + 1,
+            })
         } else {
-            let sets = bitfield_read!(ccsidr_el1, msb: 27, lsb: 13);
-            let ways = bitfield_read!(ccsidr_el1, msb: 12, lsb: 3);
-            let line = bitfield_read!(ccsidr_el1, msb: 2, lsb: 0);
+            let ccsidr_el1 = CCSIDR_EL1_NO_CCIDX.read();
+            let sets = ccsidr_el1.NUM_SETS().value();
+            let ways = ccsidr_el1.ASSOCIATIVITY().value();
+            let line = ccsidr_el1.LINE_SIZE().value();
 
-            (sets, ways, line)
-        };
-
-        Some(CacheInfo {
-            cache,
-            linesize: 1 << (line + 4),
-            num_ways: ways as usize + 1,
-            num_sets: sets as usize + 1,
-        })
+            Some(CacheInfo {
+                cache,
+                linesize: 1 << (line + 4),
+                num_ways: ways as u32 + 1,
+                num_sets: sets as u32 + 1,
+            })
+        }
     }
 }
 
@@ -109,29 +111,29 @@ impl CacheImpl {
 }
 
 pub struct Caches {
-    pub levels: RangeInclusive<usize>,
+    pub levels: RangeInclusive<u8>,
     pub impls: [CacheImpl; 7],
 
-    pub level_of_unification_inner_shareable: usize,
-    pub level_of_coherence: usize,
-    pub level_of_unification_uniprocessor: usize,
-    pub inner_cache_boundary: Option<usize>,
+    pub level_of_unification_inner_shareable: u8,
+    pub level_of_coherence: u8,
+    pub level_of_unification_uniprocessor: u8,
+    pub inner_cache_boundary: Option<u8>,
 }
 
 impl Caches {
     pub fn get() -> Self {
         let mut impls = [CacheImpl::NoCache; 7];
 
-        let clidr_el1: u64 = sysreg_read!("CLIDR_EL1");
-        let louis = bitfield_read!(clidr_el1, msb: 23, lsb: 21) as usize;
-        let loc = bitfield_read!(clidr_el1, msb: 26, lsb: 24) as usize;
-        let louu = bitfield_read!(clidr_el1, msb: 29, lsb: 27) as usize;
-        let icb = bitfield_read!(clidr_el1, msb: 32, lsb: 30) as usize;
+        let clidr_el1 = CLIDR_EL1.read();
+        let louis = clidr_el1.LOUIS().value();
+        let loc = clidr_el1.LOC().value();
+        let louu = clidr_el1.LOUU().value();
+        let icb = clidr_el1.ICB().value();
 
         let mut levels = 0;
         for level in 0..7 {
-            let mask = bitmask!(msb: 2, lsb: 0) << level;
-            let typ = (clidr_el1 & mask) >> level;
+            let mask = 0b111 << level;
+            let typ = (clidr_el1.raw_value() & mask) >> level;
             if typ == 0b000 || typ > 0b100 {
                 break;
             }
@@ -151,7 +153,7 @@ impl Caches {
         return Self {
             levels: 1..=levels,
             impls,
-            level_of_unification_inner_shareable: louis as usize,
+            level_of_unification_inner_shareable: louis,
             level_of_coherence: loc,
             level_of_unification_uniprocessor: louu,
             inner_cache_boundary: if icb > 0 { Some(icb) } else { None },

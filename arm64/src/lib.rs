@@ -22,7 +22,7 @@ pub mod start;
 pub mod sys_regs;
 
 mod asm;
-mod regs;
+// mod regs;
 
 #[cfg(feature = "critical-section")]
 pub mod critical_section;

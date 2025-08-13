@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-use crate::{bitmask, dsb, isb, sysreg_read_bitfield, sysreg_write_bitfield};
+use crate::{dsb, isb};
 
 use super::*;
 
@@ -10,40 +10,30 @@ impl DCache {
     pub fn enable() {
         Self::op_all(CacheOp::Invalidate);
 
-        let current_el: usize = sysreg_read_bitfield!("CurrentEL", msb: 3, lsb: 2);
+        let current_el = CURRENT_EL.read().EL().value();
 
         dsb!("sy");
 
-        if current_el == 3 {
-            sysreg_write_bitfield!("SCTLR_EL3", bit: 2, value: 0b1);
-        }
-
-        if current_el == 2 {
-            sysreg_write_bitfield!("SCTLR_EL2", bit: 2, value: 0b1);
-        }
-
-        if current_el == 1 {
-            sysreg_write_bitfield!("SCTLR_EL1", bit: 2, value: 0b1);
+        match current_el {
+            3 => SCTLR_EL3.modify(|sctlr_el3| sctlr_el3.with_C(true)),
+            2 => SCTLR_EL2.modify(|sctlr_el2| sctlr_el2.with_C(true)),
+            1 => SCTLR_EL1.modify(|sctlr_el1| sctlr_el1.with_C(true)),
+            _ => (),
         }
 
         isb!("sy");
     }
 
     pub fn disable() {
-        let current_el: usize = sysreg_read_bitfield!("CurrentEL", msb: 3, lsb: 2);
+        let current_el = CURRENT_EL.read().EL().value();
 
         dsb!("sy");
 
-        if current_el == 3 {
-            sysreg_write_bitfield!("SCTLR_EL3", bit: 2, value: 0b0);
-        }
-
-        if current_el == 2 {
-            sysreg_write_bitfield!("SCTLR_EL2", bit: 2, value: 0b0);
-        }
-
-        if current_el == 1 {
-            sysreg_write_bitfield!("SCTLR_EL1", bit: 2, value: 0b0);
+        match current_el {
+            3 => SCTLR_EL3.modify(|sctlr_el3| sctlr_el3.with_C(false)),
+            2 => SCTLR_EL2.modify(|sctlr_el2| sctlr_el2.with_C(false)),
+            1 => SCTLR_EL1.modify(|sctlr_el1| sctlr_el1.with_C(false)),
+            _ => (),
         }
 
         isb!("sy");
@@ -89,12 +79,12 @@ impl DCache {
             return;
         };
 
-        let start = range.start().mask(!(info.linesize - 1));
+        let start = range.start().mask(!(info.linesize as usize - 1));
         let end = unsafe {
             range
                 .end()
-                .mask(!(info.linesize - 1))
-                .byte_add(info.linesize - 1)
+                .mask(!(info.linesize as usize - 1))
+                .byte_add(info.linesize as usize - 1)
         };
 
         dsb!("sy");
@@ -110,7 +100,7 @@ impl DCache {
                 op = CacheOp::CleanInvalidate;
             }
 
-            let addr_end = unsafe { addr.byte_add(info.linesize - 1) };
+            let addr_end = unsafe { addr.byte_add(info.linesize as usize - 1) };
             if addr_end > *range.end() && op == CacheOp::Invalidate {
                 op = CacheOp::CleanInvalidate;
             }
@@ -121,7 +111,7 @@ impl DCache {
                 CacheOp::CleanInvalidate => unsafe { asm!("dc civac, {:x}", in(reg) addr) },
             }
 
-            addr = unsafe { addr.byte_add(info.linesize) };
+            addr = unsafe { addr.byte_add(info.linesize as usize) };
         }
 
         isb!("sy")
