@@ -2,5 +2,8 @@
   "rust-analyzer.cargo.target": "aarch64-unknown-none",
   "rust-analyzer.cargo.allTargets": false,
   "rust-analyzer.cargo.features": [],
-  "rust-analyzer.cargo.cfgs": []
+  "rust-analyzer.cargo.cfgs": [],
+  "rust-analyzer.inlayHints.genericParameterHints.lifetime.enable": true,
+  "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "always",
+  "rust-analyzer.inlayHints.lifetimeElisionHints.useParameterNames": true
 }

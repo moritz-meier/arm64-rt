@@ -1,6 +1,8 @@
 #![no_std]
 #![feature(fn_align)]
 #![feature(ptr_mask)]
+#![feature(ptr_as_ref_unchecked)]
+#![feature(generic_const_exprs)]
 
 #[cfg(not(target_arch = "aarch64"))]
 compile_error!("Only target_arch = \"aarch64\" is supported.");
