@@ -1,10 +1,13 @@
 #![no_std]
 #![no_main]
 
+use core::cell::RefCell;
 use core::fmt::Write as FmtWrite;
 use core::panic::PanicInfo;
 
 use arm64::cache::{DCache, ICache};
+use arm64::critical_section::Mutex;
+use arm64::mmu::*;
 use arm64::psci::Psci;
 use arm64::{EntryInfo, critical_section, entry};
 use arm64::{smccc::*, start};
@@ -17,10 +20,19 @@ mod plat;
 use excps::*;
 use plat::*;
 
+static X: Mutex<RefCell<TranslationTable<Level0>>> =
+    Mutex::new(RefCell::new(TranslationTable::DEFAULT));
+
 #[entry(exceptions = Excps)]
 unsafe fn main(info: EntryInfo) -> ! {
     ICache::enable();
     DCache::enable();
+
+    critical_section::with(|cs| {
+        let mut x = X.borrow_ref_mut(cs);
+        x.map_block(0x0, 0x0, BlockAttrs::DEFAULT);
+        MMU::enable_el2(x.base_addr() as u64);
+    });
 
     if info.cpu_idx == 0 {
         critical_section::with(|cs| {

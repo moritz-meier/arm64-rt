@@ -19,7 +19,10 @@ system_register! {
         C: bool,
 
         #[bit(12, rw)]
-        I: bool
+        I: bool,
+
+        #[bit(0, rw)]
+        M: bool,
     }
 }
 
@@ -32,7 +35,11 @@ system_register! {
         C: bool,
 
         #[bit(12, rw)]
-        I: bool
+        I: bool,
+
+
+        #[bit(0, rw)]
+        M: bool,
     }
 }
 
@@ -45,7 +52,11 @@ system_register! {
         C: bool,
 
         #[bit(12, rw)]
-        I: bool
+        I: bool,
+
+
+        #[bit(0, rw)]
+        M: bool,
     }
 }
 

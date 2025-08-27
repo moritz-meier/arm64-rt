@@ -142,8 +142,10 @@ macro_rules! expr_or_default {
 
 mod cache;
 mod id;
+mod mmu;
 mod system;
 
 pub use cache::*;
 pub use id::*;
+pub use mmu::*;
 pub use system::*;

@@ -12,7 +12,7 @@ entry-macro = { path = "macros/entry", features = ["arm64"] }
 cfg-asm = { path = "../macros/cfg-asm" }
 
 arbitrary-int = { version = "1.3.0" }
-bitbybit = { git = "ssh://git@github.com/moritz-meier/bitfield.git", branch = "field-metadata", features = [
+bitbybit = { git = "ssh://git@github.com/moritz-meier/bitfield.git", branch = "fix/introspect-bits", features = [
     "introspect",
 ] }
 derive-mmio = "0.6.0"

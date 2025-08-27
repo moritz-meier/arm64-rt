@@ -2,7 +2,7 @@
 macro_rules! dmb {
     ($opt:literal) => {
         unsafe {
-            asm!(::core::concat!("dmb ", $opt));
+            core::arch::asm!(::core::concat!("dmb ", $opt));
         }
     };
 }
@@ -11,7 +11,7 @@ macro_rules! dmb {
 macro_rules! dsb {
     ($opt:literal) => {
         unsafe {
-            asm!(::core::concat!("dsb ", $opt));
+            core::arch::asm!(::core::concat!("dsb ", $opt));
         }
     };
 }
@@ -20,7 +20,7 @@ macro_rules! dsb {
 macro_rules! isb {
     ($opt:literal) => {
         unsafe {
-            asm!(::core::concat!("isb ", $opt));
+            core::arch::asm!(::core::concat!("isb ", $opt));
         }
     };
 }

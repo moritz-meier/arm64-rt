@@ -1,7 +1,10 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use core::marker::{PhantomData, PhantomPinned};
+use core::{
+    marker::{PhantomData, PhantomPinned},
+    ptr::addr_of,
+};
 
 use arbitrary_int::*;
 use bitbybit::*;
@@ -9,50 +12,89 @@ use bitbybit::*;
 use super::*;
 
 #[repr(align(4096), C)]
-struct TranslationTable<L: TranslationLevel> {
+pub struct TranslationTable<L: TranslationLevel> {
     entries: [TranslationTableEntry<L>; 512],
     pin: PhantomPinned,
 }
 
 impl<L: TranslationLevel> TranslationTable<L> {
-    const DEFAULT: Self = Self {
+    pub const DEFAULT: Self = Self {
         entries: [TranslationTableEntry::INVALID; 512],
         pin: PhantomPinned,
     };
+
+    pub fn base_addr(&self) -> *const u64 {
+        addr_of!(self.entries) as *const u64
+    }
 }
 
 impl TranslationTable<Level0> {
-    fn unmap(&mut self, vaddr: u64) {
+    pub fn unmap(&mut self, vaddr: u64) {
         let vaddr = VirtAddr::new_with_raw_value(vaddr);
         self.entries[vaddr.LEVEL0_IDX().as_usize()] = TranslationTableEntry::INVALID;
     }
 
-    fn map_block(&mut self, vaddr: u64, paddr: u64) {
+    pub fn map_table(&mut self, vaddr: u64, table_paddr: u64, attrs: TableAttrs) {
         let vaddr = VirtAddr::new_with_raw_value(vaddr);
-        self.entries[vaddr.LEVEL0_IDX().as_usize()] = TranslationTableEntry {
-            block: BlockEntry::DEFAULT.with_ADDR_LEVEL0(paddr).with_SH(sh),
-        }
+        self.entries[vaddr.LEVEL0_IDX().as_usize()] =
+            TranslationTableEntry::<Level0>::table(table_paddr, attrs)
+    }
+
+    pub fn map_block(&mut self, vaddr: u64, paddr: u64, attrs: BlockAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL0_IDX().as_usize()] =
+            TranslationTableEntry::<Level0>::block(paddr, attrs)
     }
 }
 
 impl TranslationTable<Level1> {
-    fn unmap(&mut self, vaddr: u64) {
+    pub fn unmap(&mut self, vaddr: u64) {
         let vaddr = VirtAddr::new_with_raw_value(vaddr);
         self.entries[vaddr.LEVEL1_IDX().as_usize()] = TranslationTableEntry::INVALID;
+    }
+
+    pub fn map_table(&mut self, vaddr: u64, table_paddr: u64, attrs: TableAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL1_IDX().as_usize()] =
+            TranslationTableEntry::<Level1>::table(table_paddr, attrs)
+    }
+
+    pub fn map_block(&mut self, vaddr: u64, paddr: u64, attrs: BlockAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL1_IDX().as_usize()] =
+            TranslationTableEntry::<Level1>::block(paddr, attrs)
     }
 }
 
 impl TranslationTable<Level2> {
-    fn unmap(&mut self, vaddr: u64) {
+    pub fn unmap(&mut self, vaddr: u64) {
         let vaddr = VirtAddr::new_with_raw_value(vaddr);
         self.entries[vaddr.LEVEL2_IDX().as_usize()] = TranslationTableEntry::INVALID;
+    }
+
+    pub fn map_table(&mut self, vaddr: u64, table_paddr: u64, attrs: TableAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL2_IDX().as_usize()] =
+            TranslationTableEntry::<Level2>::table(table_paddr, attrs)
+    }
+
+    pub fn map_block(&mut self, vaddr: u64, paddr: u64, attrs: BlockAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL2_IDX().as_usize()] =
+            TranslationTableEntry::<Level2>::block(paddr, attrs)
     }
 }
 
 impl TranslationTable<Level3> {
-    fn unmap(&mut self, vaddr: u64) {
+    pub fn unmap(&mut self, vaddr: u64) {
         let vaddr = VirtAddr::new_with_raw_value(vaddr);
         self.entries[vaddr.LEVEL3_IDX().as_usize()] = TranslationTableEntry::INVALID;
+    }
+
+    pub fn map_page(&mut self, vaddr: u64, paddr: u64, attrs: PageAttrs) {
+        let vaddr = VirtAddr::new_with_raw_value(vaddr);
+        self.entries[vaddr.LEVEL3_IDX().as_usize()] =
+            TranslationTableEntry::<Level3>::page(paddr, attrs)
     }
 }
 
@@ -104,12 +146,29 @@ impl<L: TranslationLevel> TranslationTableEntry<L> {
     }
 }
 
+impl<L: TranslationLevel> TranslationTableEntry<L>
+where
+    [(); 2 - L::NUM]:,
+{
+    fn table(paddr: u64, attrs: TableAttrs) -> Self {
+        const PADDR_MASK: u64 = TableEntry::ADDR_mask();
+        const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
+        let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
+        Self {
+            table: TableEntry::DEFAULT
+                .with_ADDR(paddr)
+                .with_NS(attrs.non_secure),
+        }
+    }
+}
+
 impl TranslationTableEntry<Level0> {
     fn block(paddr: u64, attrs: BlockAttrs) -> Self {
         const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL0_mask();
         const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL0_BITS.start();
-
         let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
         let sh = match attrs.shareability {
             super::Shareability::Non => Shareability::Non,
             super::Shareability::Outer => Shareability::Outer,
@@ -123,10 +182,16 @@ impl TranslationTableEntry<Level0> {
             super::Access::PrivReadWriteUnprivReadWrite => Access::PrivReadWriteUnprivReadWrite,
         };
 
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
         let attr_idx = match attrs.mem_typ {
             MemoryTyp::Device_nGnRnE => 0,
-            MemoryTyp::Normal_nGnRnE => 1,
-            MemoryTyp::Normal_GRE => 2,
+            MemoryTyp::Normal_NonCacheable => 1,
+            MemoryTyp::Normal_InnerCacheable => 2,
+            MemoryTyp::Normal_InnerOuterCacheable => 3,
         };
 
         Self {
@@ -134,7 +199,133 @@ impl TranslationTableEntry<Level0> {
                 .with_ADDR_LEVEL0(paddr)
                 .with_SH(sh)
                 .with_AP(ap)
-                .with_NS(attrs.non_secure)
+                .with_NS(ns)
+                .with_ATTR_IDX(u3::from_u8(attr_idx)),
+        }
+    }
+}
+
+impl TranslationTableEntry<Level1> {
+    fn block(paddr: u64, attrs: BlockAttrs) -> Self {
+        const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL1_mask();
+        const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL1_BITS.start();
+        let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
+        let sh = match attrs.shareability {
+            super::Shareability::Non => Shareability::Non,
+            super::Shareability::Outer => Shareability::Outer,
+            super::Shareability::Inner => Shareability::Inner,
+        };
+
+        let ap = match attrs.access {
+            super::Access::PrivRead => Access::PrivRead,
+            super::Access::PrivReadWrite => Access::PrivReadWrite,
+            super::Access::PrivReadUnprivRead => Access::PrivReadUnprivRead,
+            super::Access::PrivReadWriteUnprivReadWrite => Access::PrivReadWriteUnprivReadWrite,
+        };
+
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
+        let attr_idx = match attrs.mem_typ {
+            MemoryTyp::Device_nGnRnE => 0,
+            MemoryTyp::Normal_NonCacheable => 1,
+            MemoryTyp::Normal_InnerCacheable => 2,
+            MemoryTyp::Normal_InnerOuterCacheable => 3,
+        };
+
+        Self {
+            block: BlockEntry::DEFAULT
+                .with_ADDR_LEVEL0(paddr)
+                .with_SH(sh)
+                .with_AP(ap)
+                .with_NS(ns)
+                .with_ATTR_IDX(u3::from_u8(attr_idx)),
+        }
+    }
+}
+
+impl TranslationTableEntry<Level2> {
+    fn block(paddr: u64, attrs: BlockAttrs) -> Self {
+        const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL2_mask();
+        const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL2_BITS.start();
+        let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
+        let sh = match attrs.shareability {
+            super::Shareability::Non => Shareability::Non,
+            super::Shareability::Outer => Shareability::Outer,
+            super::Shareability::Inner => Shareability::Inner,
+        };
+
+        let ap = match attrs.access {
+            super::Access::PrivRead => Access::PrivRead,
+            super::Access::PrivReadWrite => Access::PrivReadWrite,
+            super::Access::PrivReadUnprivRead => Access::PrivReadUnprivRead,
+            super::Access::PrivReadWriteUnprivReadWrite => Access::PrivReadWriteUnprivReadWrite,
+        };
+
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
+        let attr_idx = match attrs.mem_typ {
+            MemoryTyp::Device_nGnRnE => 0,
+            MemoryTyp::Normal_NonCacheable => 1,
+            MemoryTyp::Normal_InnerCacheable => 2,
+            MemoryTyp::Normal_InnerOuterCacheable => 3,
+        };
+
+        Self {
+            block: BlockEntry::DEFAULT
+                .with_ADDR_LEVEL0(paddr)
+                .with_SH(sh)
+                .with_AP(ap)
+                .with_NS(ns)
+                .with_ATTR_IDX(u3::from_u8(attr_idx)),
+        }
+    }
+}
+
+impl TranslationTableEntry<Level3> {
+    fn page(paddr: u64, attrs: PageAttrs) -> Self {
+        const PADDR_MASK: u64 = PageEntry::ADDR_mask();
+        const PADDR_SHIFT: usize = *PageEntry::ADDR_BITS.start();
+        let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
+        let sh = match attrs.shareability {
+            super::Shareability::Non => Shareability::Non,
+            super::Shareability::Outer => Shareability::Outer,
+            super::Shareability::Inner => Shareability::Inner,
+        };
+
+        let ap = match attrs.access {
+            super::Access::PrivRead => Access::PrivRead,
+            super::Access::PrivReadWrite => Access::PrivReadWrite,
+            super::Access::PrivReadUnprivRead => Access::PrivReadUnprivRead,
+            super::Access::PrivReadWriteUnprivReadWrite => Access::PrivReadWriteUnprivReadWrite,
+        };
+
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
+        let attr_idx = match attrs.mem_typ {
+            MemoryTyp::Device_nGnRnE => 0,
+            MemoryTyp::Normal_NonCacheable => 1,
+            MemoryTyp::Normal_InnerCacheable => 2,
+            MemoryTyp::Normal_InnerOuterCacheable => 3,
+        };
+
+        Self {
+            page: PageEntry::DEFAULT
+                .with_ADDR(paddr)
+                .with_SH(sh)
+                .with_AP(ap)
+                .with_NS(ns)
                 .with_ATTR_IDX(u3::from_u8(attr_idx)),
         }
     }
@@ -240,4 +431,7 @@ struct VirtAddr {
 
     #[bits(12..=20, rw)]
     LEVEL3_IDX: u9,
+
+    #[bits(0..=11, rw)]
+    OFFSET: u12,
 }
