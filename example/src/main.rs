@@ -20,18 +20,26 @@ mod plat;
 use excps::*;
 use plat::*;
 
-static X: Mutex<RefCell<TranslationTable<Level0>>> =
+static L0TABLE: Mutex<RefCell<TranslationTable<Level0>>> =
+    Mutex::new(RefCell::new(TranslationTable::DEFAULT));
+
+static L1TABLE: Mutex<RefCell<TranslationTable<Level1>>> =
     Mutex::new(RefCell::new(TranslationTable::DEFAULT));
 
 #[entry(exceptions = Excps)]
 unsafe fn main(info: EntryInfo) -> ! {
-    ICache::enable();
-    DCache::enable();
-
     critical_section::with(|cs| {
-        let mut x = X.borrow_ref_mut(cs);
-        x.map_block(0x0, 0x0, BlockAttrs::DEFAULT);
-        MMU::enable_el2(x.base_addr() as u64);
+        let mut l0 = L0TABLE.borrow_ref_mut(cs);
+        let mut l1 = L1TABLE.borrow_ref_mut(cs);
+
+        l0.map_table(0x4000_0000, l1.base_addr() as u64, TableAttrs::NON_SECURE);
+        l1.map_block(0x0000_0000, 0x0000_0000, BlockAttrs::DEFAULT);
+        l1.map_block(0x4000_0000, 0x4000_0000, BlockAttrs::DEFAULT);
+
+        MMU::enable_el1(l0.base_addr() as u64);
+
+        ICache::enable();
+        DCache::enable();
     });
 
     if info.cpu_idx == 0 {
@@ -44,12 +52,12 @@ unsafe fn main(info: EntryInfo) -> ! {
         .write_fmt(format_args!("Hello World! cpu_idx = {}", info.cpu_idx))
         .unwrap();
 
-    Psci::cpu_on_64::<Smccc<SMC>>(
-        (info.cpu_idx + 1) as u64,
-        (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
-        0,
-    )
-    .unwrap();
+    // Psci::cpu_on_64::<Smccc<SMC>>(
+    //     (info.cpu_idx + 1) as u64,
+    //     (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
+    //     0,
+    // )
+    // .unwrap();
 
     loop {
         unsafe { core::arch::asm!("nop") };
@@ -58,7 +66,7 @@ unsafe fn main(info: EntryInfo) -> ! {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    Psci::system_reset::<Smccc<SMC>>().unwrap();
+    // Psci::system_reset::<Smccc<SMC>>().unwrap();
     loop {}
 }
 

@@ -39,12 +39,6 @@ impl TranslationTable<Level0> {
         self.entries[vaddr.LEVEL0_IDX().as_usize()] =
             TranslationTableEntry::<Level0>::table(table_paddr, attrs)
     }
-
-    pub fn map_block(&mut self, vaddr: u64, paddr: u64, attrs: BlockAttrs) {
-        let vaddr = VirtAddr::new_with_raw_value(vaddr);
-        self.entries[vaddr.LEVEL0_IDX().as_usize()] =
-            TranslationTableEntry::<Level0>::block(paddr, attrs)
-    }
 }
 
 impl TranslationTable<Level1> {
@@ -146,10 +140,7 @@ impl<L: TranslationLevel> TranslationTableEntry<L> {
     }
 }
 
-impl<L: TranslationLevel> TranslationTableEntry<L>
-where
-    [(); 2 - L::NUM]:,
-{
+impl TranslationTableEntry<Level0> {
     fn table(paddr: u64, attrs: TableAttrs) -> Self {
         const PADDR_MASK: u64 = TableEntry::ADDR_mask();
         const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
@@ -163,53 +154,23 @@ where
     }
 }
 
-impl TranslationTableEntry<Level0> {
-    fn block(paddr: u64, attrs: BlockAttrs) -> Self {
-        const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL0_mask();
-        const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL0_BITS.start();
-        let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
-
-        let sh = match attrs.shareability {
-            super::Shareability::Non => Shareability::Non,
-            super::Shareability::Outer => Shareability::Outer,
-            super::Shareability::Inner => Shareability::Inner,
-        };
-
-        let ap = match attrs.access {
-            super::Access::PrivRead => Access::PrivRead,
-            super::Access::PrivReadWrite => Access::PrivReadWrite,
-            super::Access::PrivReadUnprivRead => Access::PrivReadUnprivRead,
-            super::Access::PrivReadWriteUnprivReadWrite => Access::PrivReadWriteUnprivReadWrite,
-        };
-
-        let ns = match attrs.security {
-            SecurityDomain::NonSecure => true,
-            SecurityDomain::Secure => false,
-        };
-
-        let attr_idx = match attrs.mem_typ {
-            MemoryTyp::Device_nGnRnE => 0,
-            MemoryTyp::Normal_NonCacheable => 1,
-            MemoryTyp::Normal_InnerCacheable => 2,
-            MemoryTyp::Normal_InnerOuterCacheable => 3,
-        };
+impl TranslationTableEntry<Level1> {
+    fn table(paddr: u64, attrs: TableAttrs) -> Self {
+        const PADDR_MASK: u64 = TableEntry::ADDR_mask();
+        const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
+        let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
         Self {
-            block: BlockEntry::DEFAULT
-                .with_ADDR_LEVEL0(paddr)
-                .with_SH(sh)
-                .with_AP(ap)
-                .with_NS(ns)
-                .with_ATTR_IDX(u3::from_u8(attr_idx)),
+            table: TableEntry::DEFAULT
+                .with_ADDR(paddr)
+                .with_NS(attrs.non_secure),
         }
     }
-}
 
-impl TranslationTableEntry<Level1> {
     fn block(paddr: u64, attrs: BlockAttrs) -> Self {
         const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL1_mask();
         const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL1_BITS.start();
-        let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+        let paddr = u18::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
         let sh = match attrs.shareability {
             super::Shareability::Non => Shareability::Non,
@@ -238,7 +199,8 @@ impl TranslationTableEntry<Level1> {
 
         Self {
             block: BlockEntry::DEFAULT
-                .with_ADDR_LEVEL0(paddr)
+                .with_ADDR_LEVEL1(paddr)
+                .with_AF(true)
                 .with_SH(sh)
                 .with_AP(ap)
                 .with_NS(ns)
@@ -248,10 +210,22 @@ impl TranslationTableEntry<Level1> {
 }
 
 impl TranslationTableEntry<Level2> {
+    fn table(paddr: u64, attrs: TableAttrs) -> Self {
+        const PADDR_MASK: u64 = TableEntry::ADDR_mask();
+        const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
+        let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+
+        Self {
+            table: TableEntry::DEFAULT
+                .with_ADDR(paddr)
+                .with_NS(attrs.non_secure),
+        }
+    }
+
     fn block(paddr: u64, attrs: BlockAttrs) -> Self {
         const PADDR_MASK: u64 = BlockEntry::ADDR_LEVEL2_mask();
         const PADDR_SHIFT: usize = *BlockEntry::ADDR_LEVEL2_BITS.start();
-        let paddr = u9::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
+        let paddr = u27::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
         let sh = match attrs.shareability {
             super::Shareability::Non => Shareability::Non,
@@ -280,7 +254,8 @@ impl TranslationTableEntry<Level2> {
 
         Self {
             block: BlockEntry::DEFAULT
-                .with_ADDR_LEVEL0(paddr)
+                .with_ADDR_LEVEL2(paddr)
+                .with_AF(true)
                 .with_SH(sh)
                 .with_AP(ap)
                 .with_NS(ns)
@@ -323,6 +298,7 @@ impl TranslationTableEntry<Level3> {
         Self {
             page: PageEntry::DEFAULT
                 .with_ADDR(paddr)
+                .with_AF(true)
                 .with_SH(sh)
                 .with_AP(ap)
                 .with_NS(ns)
@@ -354,14 +330,14 @@ struct TableEntry {
 
 #[bitfield(u64, default = 0b01, rw)]
 struct BlockEntry {
-    #[bits(39..=47, rw)]
-    ADDR_LEVEL0: u9,
-
     #[bits(30..=47, rw)]
     ADDR_LEVEL1: u18,
 
     #[bits(21..=47, rw)]
     ADDR_LEVEL2: u27,
+
+    #[bit(10, rw)]
+    AF: bool,
 
     #[bits(8..=9, rw)]
     SH: Option<Shareability>,
@@ -383,6 +359,9 @@ struct BlockEntry {
 struct PageEntry {
     #[bits(12..=47, rw)]
     ADDR: u36,
+
+    #[bit(10, rw)]
+    AF: bool,
 
     #[bits(8..=9, rw)]
     SH: Option<Shareability>,

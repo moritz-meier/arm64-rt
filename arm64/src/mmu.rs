@@ -3,7 +3,7 @@ mod translation_table;
 use arbitrary_int::*;
 pub use translation_table::*;
 
-use crate::{isb, sys_regs::*};
+use crate::{dsb, isb, sys_regs::*};
 
 pub struct MMU;
 
@@ -87,7 +87,7 @@ impl MMU {
     }
 
     pub fn enable_el1(table_paddr: u64) {
-        Self::invalidate_tlb_el1_all();
+        // Self::invalidate_tlb_el1_all();
 
         TCR_EL1.write(
             TCR_EL1::DEFAULT
@@ -162,6 +162,10 @@ pub struct TableAttrs {
     non_secure: bool,
 }
 
+impl TableAttrs {
+    pub const NON_SECURE: Self = Self { non_secure: true };
+}
+
 pub struct BlockAttrs {
     mem_typ: MemoryTyp,
     shareability: Shareability,
@@ -173,7 +177,7 @@ impl BlockAttrs {
     pub const DEFAULT: Self = Self {
         mem_typ: MemoryTyp::Device_nGnRnE,
         shareability: Shareability::Non,
-        access: Access::PrivRead,
+        access: Access::PrivReadWriteUnprivReadWrite,
         security: SecurityDomain::NonSecure,
     };
 }

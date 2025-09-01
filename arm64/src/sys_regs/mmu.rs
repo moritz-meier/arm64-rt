@@ -161,25 +161,25 @@ system_register! {
     pub MAIR_EL3(
         "MAIR_EL3", u64, rw
     ) {
-        #[bits(0..=7, rw)]
+        #[bits(56..=63, rw)]
         ATTR7: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(48..=55, rw)]
         ATTR6: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(40..=47, rw)]
         ATTR5: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(32..=39, rw)]
         ATTR4: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(24..=31, rw)]
         ATTR3: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(16..=23, rw)]
         ATTR2: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(8..=15, rw)]
         ATTR1: u8,
 
         #[bits(0..=7, rw)]
@@ -191,25 +191,25 @@ system_register! {
     pub MAIR_EL2(
         "MAIR_EL2", u64, rw
     ) {
-        #[bits(0..=7, rw)]
+        #[bits(56..=63, rw)]
         ATTR7: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(48..=55, rw)]
         ATTR6: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(40..=47, rw)]
         ATTR5: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(32..=39, rw)]
         ATTR4: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(24..=31, rw)]
         ATTR3: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(16..=23, rw)]
         ATTR2: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(8..=15, rw)]
         ATTR1: u8,
 
         #[bits(0..=7, rw)]
@@ -221,25 +221,25 @@ system_register! {
     pub MAIR_EL1(
         "MAIR_EL1", u64, rw
     ) {
-        #[bits(0..=7, rw)]
+        #[bits(56..=63, rw)]
         ATTR7: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(48..=55, rw)]
         ATTR6: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(40..=47, rw)]
         ATTR5: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(32..=39, rw)]
         ATTR4: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(24..=31, rw)]
         ATTR3: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(16..=23, rw)]
         ATTR2: u8,
 
-        #[bits(0..=7, rw)]
+        #[bits(8..=15, rw)]
         ATTR1: u8,
 
         #[bits(0..=7, rw)]

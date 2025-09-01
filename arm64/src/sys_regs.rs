@@ -105,7 +105,9 @@ macro_rules! impl_sysreg_write {
             let value: $t = (value.raw_value() & !RES0) | RES1;
             unsafe {
                 core::arch::asm!(
+                    "dsb sy",
                     core::concat!("msr ", $reg_name, ", {value}"),
+                    "isb sy",
                     value = in(reg) value
                 );
             }
