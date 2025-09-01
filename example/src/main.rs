@@ -26,15 +26,21 @@ static L0TABLE: Mutex<RefCell<TranslationTable<Level0>>> =
 static L1TABLE: Mutex<RefCell<TranslationTable<Level1>>> =
     Mutex::new(RefCell::new(TranslationTable::DEFAULT));
 
+const DEFAULT_PAGE_ATTRS: BlockAttrs = BlockAttrs::DEFAULT
+    .with_mem_type(MemoryTyp::Device_nGnRnE)
+    .with_shareability(Shareability::Non)
+    .with_access(Access::PrivReadWrite)
+    .with_security(SecurityDomain::NonSecure);
+
 #[entry(exceptions = Excps)]
 unsafe fn main(info: EntryInfo) -> ! {
     critical_section::with(|cs| {
         let mut l0 = L0TABLE.borrow_ref_mut(cs);
         let mut l1 = L1TABLE.borrow_ref_mut(cs);
 
-        l0.map_table(0x4000_0000, l1.base_addr() as u64, TableAttrs::NON_SECURE);
-        l1.map_block(0x0000_0000, 0x0000_0000, BlockAttrs::DEFAULT);
-        l1.map_block(0x4000_0000, 0x4000_0000, BlockAttrs::DEFAULT);
+        l0.map_table(0x4000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
+        l1.map_block(0x0000_0000, 0x0000_0000, DEFAULT_PAGE_ATTRS);
+        l1.map_block(0x4000_0000, 0x4000_0000, DEFAULT_PAGE_ATTRS);
 
         MMU::enable_el1(l0.base_addr() as u64);
 

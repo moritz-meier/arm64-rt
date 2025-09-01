@@ -146,10 +146,13 @@ impl TranslationTableEntry<Level0> {
         const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
         let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
         Self {
-            table: TableEntry::DEFAULT
-                .with_ADDR(paddr)
-                .with_NS(attrs.non_secure),
+            table: TableEntry::DEFAULT.with_ADDR(paddr).with_NS(ns),
         }
     }
 }
@@ -160,10 +163,13 @@ impl TranslationTableEntry<Level1> {
         const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
         let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
         Self {
-            table: TableEntry::DEFAULT
-                .with_ADDR(paddr)
-                .with_NS(attrs.non_secure),
+            table: TableEntry::DEFAULT.with_ADDR(paddr).with_NS(ns),
         }
     }
 
@@ -215,10 +221,13 @@ impl TranslationTableEntry<Level2> {
         const PADDR_SHIFT: usize = *TableEntry::ADDR_BITS.start();
         let paddr = u36::from_u64((paddr & PADDR_MASK) >> PADDR_SHIFT);
 
+        let ns = match attrs.security {
+            SecurityDomain::NonSecure => true,
+            SecurityDomain::Secure => false,
+        };
+
         Self {
-            table: TableEntry::DEFAULT
-                .with_ADDR(paddr)
-                .with_NS(attrs.non_secure),
+            table: TableEntry::DEFAULT.with_ADDR(paddr).with_NS(ns),
         }
     }
 

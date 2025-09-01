@@ -3,7 +3,7 @@ mod translation_table;
 use arbitrary_int::*;
 pub use translation_table::*;
 
-use crate::{dsb, isb, sys_regs::*};
+use crate::{isb, sys_regs::*};
 
 pub struct MMU;
 
@@ -87,7 +87,7 @@ impl MMU {
     }
 
     pub fn enable_el1(table_paddr: u64) {
-        // Self::invalidate_tlb_el1_all();
+        Self::invalidate_tlb_el1_all();
 
         TCR_EL1.write(
             TCR_EL1::DEFAULT
@@ -159,11 +159,19 @@ impl TranslationLevel for Level3 {
 }
 
 pub struct TableAttrs {
-    non_secure: bool,
+    security: SecurityDomain,
 }
 
 impl TableAttrs {
-    pub const NON_SECURE: Self = Self { non_secure: true };
+    pub const DEFAULT: Self = Self {
+        security: SecurityDomain::NonSecure,
+    };
+}
+
+impl TableAttrs {
+    pub const fn with_security(self, security: SecurityDomain) -> Self {
+        Self { security, ..self }
+    }
 }
 
 pub struct BlockAttrs {
@@ -177,9 +185,30 @@ impl BlockAttrs {
     pub const DEFAULT: Self = Self {
         mem_typ: MemoryTyp::Device_nGnRnE,
         shareability: Shareability::Non,
-        access: Access::PrivReadWriteUnprivReadWrite,
+        access: Access::PrivRead,
         security: SecurityDomain::NonSecure,
     };
+}
+
+impl BlockAttrs {
+    pub const fn with_mem_type(self, mem_typ: MemoryTyp) -> Self {
+        Self { mem_typ, ..self }
+    }
+
+    pub const fn with_shareability(self, shareability: Shareability) -> Self {
+        Self {
+            shareability,
+            ..self
+        }
+    }
+
+    pub const fn with_access(self, access: Access) -> Self {
+        Self { access, ..self }
+    }
+
+    pub const fn with_security(self, security: SecurityDomain) -> Self {
+        Self { security, ..self }
+    }
 }
 
 pub struct PageAttrs {
