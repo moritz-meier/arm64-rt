@@ -146,8 +146,10 @@ mod cache;
 mod id;
 mod mmu;
 mod system;
+mod timer;
 
 pub use cache::*;
 pub use id::*;
 pub use mmu::*;
 pub use system::*;
+pub use timer::*;
