@@ -5,12 +5,10 @@ use core::cell::RefCell;
 use core::fmt::Write as FmtWrite;
 use core::panic::PanicInfo;
 
-use arm64::cache::{DCache, ICache};
-use arm64::critical_section::Mutex;
+use arm64::cache::*;
+use arm64::critical_section::*;
 use arm64::mmu::*;
-use arm64::psci::Psci;
-use arm64::{EntryInfo, critical_section, entry};
-use arm64::{smccc::*, start};
+use arm64::*;
 
 use embedded_hal_nb::serial::Write;
 
@@ -42,7 +40,7 @@ unsafe fn main(info: EntryInfo) -> ! {
         l1.map_block(0x0000_0000, 0x0000_0000, DEFAULT_PAGE_ATTRS);
         l1.map_block(0x4000_0000, 0x4000_0000, DEFAULT_PAGE_ATTRS);
 
-        MMU::enable_el1(l0.base_addr() as u64);
+        MMU::enable_el2(l0.base_addr() as u64);
 
         ICache::enable();
         DCache::enable();
