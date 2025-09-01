@@ -47,7 +47,7 @@ system_register! {
     pub CNTFRQ_EL0(
         "CNTFRQ_EL0", u64, rw
     ) {
-        #[bits(0..=63, rw)]
-        FREQ: u64,
+        #[bits(0..=31, rw)]
+        FREQ: u32,
     }
 }
