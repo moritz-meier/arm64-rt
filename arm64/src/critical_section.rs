@@ -15,7 +15,9 @@ unsafe impl critical_section::Impl for CriticalSectionImpl {
                 "2:",
                 "wfe",
                 "3:",
+                "dsb ish",
                 "dc civac, {lock_addr}",
+                "isb sy",
                 "ldaxr {reg0}, [{lock_addr}]",
                 "cbnz {reg0}, 2b",
                 "stxr {reg1:w}, {reg2:x}, [{lock_addr}]",
@@ -32,7 +34,9 @@ unsafe impl critical_section::Impl for CriticalSectionImpl {
         unsafe {
             asm!(
                 "stlr xzr, [{lock_addr}]", // Store operation generates an event to all cores waiting in WFE
+                "dsb ish",
                 "dc civac, {lock_addr}",
+                "isb sy",
                 lock_addr = in(reg) addr_of_mut!(GLOBAL_LOCK),
             );
         }
