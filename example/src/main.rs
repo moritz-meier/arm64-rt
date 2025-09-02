@@ -39,27 +39,25 @@ const NORMAL_ATTRS: BlockAttrs = BlockAttrs::DEFAULT
     .with_security(SecurityDomain::NonSecure);
 
 #[entry(exceptions = Excps)]
-unsafe fn main(info: EntryInfo) -> ! {
+fn main(info: EntryInfo) -> ! {
     critical_section::with(|cs| {
         let mut l0 = L0TABLE.borrow_ref_mut(cs);
         let mut l1 = L1TABLE.borrow_ref_mut(cs);
 
-        if info.cpu_idx == 0 {
-            match () {
-                #[cfg(feature = "qemu")]
-                () => {
-                    l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
-                    l1.map_block(0x0000_0000, 0x0000_0000, DEVICE_ATTRS);
-                    l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
-                }
+        match () {
+            #[cfg(feature = "qemu")]
+            () => {
+                l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
+                l1.map_block(0x0000_0000, 0x0000_0000, DEVICE_ATTRS);
+                l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
+            }
 
-                #[cfg(feature = "kr260")]
-                () => {
-                    l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
-                    l1.map_block(0x0000_0000, 0x0000_0000, NORMAL_ATTRS);
-                    l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
-                    l1.map_block(0xC000_0000, 0xC000_0000, DEVICE_ATTRS);
-                }
+            #[cfg(feature = "kr260")]
+            () => {
+                l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
+                l1.map_block(0x0000_0000, 0x0000_0000, NORMAL_ATTRS);
+                l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
+                l1.map_block(0xC000_0000, 0xC000_0000, DEVICE_ATTRS);
             }
         }
 
@@ -69,19 +67,19 @@ unsafe fn main(info: EntryInfo) -> ! {
         DCache::enable();
     });
 
-    if info.cpu_idx == 0 {
-        critical_section::with(|cs| {
-            UART_DRIVER.borrow_ref_mut(cs).init();
-        })
-    }
+    DCache::op_all(CacheOp::CleanInvalidate);
+
+    critical_section::with(|cs| {
+        UART_DRIVER.borrow_ref_mut(cs).init();
+    });
 
     UartWriter
-        .write_fmt(format_args!("Hello World! cpu_idx = {:?}", Caches::get()))
+        .write_fmt(format_args!("Hello World! cpu_idx = {}\n", info.cpu_idx))
         .unwrap();
 
     Psci::cpu_on_64::<Smccc<SMC>>(
-        (info.cpu_idx + 1) as u64,
-        (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
+        1,
+        (start::<SecEntryImpl, Excps> as *const fn() -> !) as u64,
         0,
     )
     .unwrap();
@@ -91,9 +89,39 @@ unsafe fn main(info: EntryInfo) -> ! {
     }
 }
 
+struct SecEntryImpl;
+
+impl Entry for SecEntryImpl {
+    unsafe extern "C" fn entry(info: EntryInfo) -> ! {
+        main2(info)
+    }
+}
+
+fn main2(info: EntryInfo) -> ! {
+    critical_section::with(|cs| {
+        let l0 = L0TABLE.borrow_ref_mut(cs);
+        MMU::enable_el2(l0.base_addr() as u64);
+
+        ICache::enable();
+        DCache::enable();
+    });
+
+    DCache::op_all(CacheOp::CleanInvalidate);
+
+    UartWriter
+        .write_fmt(format_args!("Hello World! cpu_idx = {}\n", info.cpu_idx))
+        .unwrap();
+
+    loop {}
+}
+
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
     // Psci::system_reset::<Smccc<SMC>>().unwrap();
+    UartWriter
+        .write_fmt(format_args!("{:?}\n", info.message()))
+        .unwrap();
+
     loop {}
 }
 

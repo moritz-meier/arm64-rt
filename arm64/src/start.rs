@@ -259,7 +259,7 @@ unsafe extern "C" fn rust_init() {
         "msr spsel, #0x1",              // Use ELx stack
         "mov sp, x10",
 
-        "cbnz x21, 2f",                 // Secondary cores skip
+        "cbnz x21, 3f",                 // Secondary cores skip
 
         // Zero bss
         "ldr x9, =__bss_start",
