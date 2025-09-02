@@ -199,8 +199,8 @@ impl TranslationTableEntry<Level1> {
         let attr_idx = match attrs.mem_typ {
             MemoryTyp::Device_nGnRnE => 0,
             MemoryTyp::Normal_NonCacheable => 1,
-            MemoryTyp::Normal_InnerCacheable => 2,
-            MemoryTyp::Normal_InnerOuterCacheable => 3,
+            MemoryTyp::Normal_WriteThrough => 2,
+            MemoryTyp::Normal_Cacheable => 3,
         };
 
         Self {
@@ -257,8 +257,8 @@ impl TranslationTableEntry<Level2> {
         let attr_idx = match attrs.mem_typ {
             MemoryTyp::Device_nGnRnE => 0,
             MemoryTyp::Normal_NonCacheable => 1,
-            MemoryTyp::Normal_InnerCacheable => 2,
-            MemoryTyp::Normal_InnerOuterCacheable => 3,
+            MemoryTyp::Normal_WriteThrough => 2,
+            MemoryTyp::Normal_Cacheable => 3,
         };
 
         Self {
@@ -300,8 +300,8 @@ impl TranslationTableEntry<Level3> {
         let attr_idx = match attrs.mem_typ {
             MemoryTyp::Device_nGnRnE => 0,
             MemoryTyp::Normal_NonCacheable => 1,
-            MemoryTyp::Normal_InnerCacheable => 2,
-            MemoryTyp::Normal_InnerOuterCacheable => 3,
+            MemoryTyp::Normal_WriteThrough => 2,
+            MemoryTyp::Normal_Cacheable => 3,
         };
 
         Self {

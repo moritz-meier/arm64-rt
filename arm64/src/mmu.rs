@@ -41,7 +41,7 @@ impl MMU {
             MAIR_EL3::DEFAULT
                 .with_ATTR0(0b00000000)
                 .with_ATTR1(0b01000100)
-                .with_ATTR2(0b01001111)
+                .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111),
         );
 
@@ -71,7 +71,7 @@ impl MMU {
             MAIR_EL2::DEFAULT
                 .with_ATTR0(0b00000000)
                 .with_ATTR1(0b01000100)
-                .with_ATTR2(0b01001111)
+                .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111),
         );
 
@@ -99,7 +99,7 @@ impl MMU {
             MAIR_EL1::DEFAULT
                 .with_ATTR0(0b00000000)
                 .with_ATTR1(0b01000100)
-                .with_ATTR2(0b01001111)
+                .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111),
         );
 
@@ -221,8 +221,8 @@ pub struct PageAttrs {
 pub enum MemoryTyp {
     Device_nGnRnE,
     Normal_NonCacheable,
-    Normal_InnerCacheable,
-    Normal_InnerOuterCacheable,
+    Normal_WriteThrough,
+    Normal_Cacheable,
 }
 
 pub enum Shareability {

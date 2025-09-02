@@ -58,5 +58,8 @@ system_register! {
 
         #[bits(21..=23, r)]
         LOUIS: u3,
+
+        #[bits(0..=2, r)]
+        CTYPE: [u3; 7]
     }
 }

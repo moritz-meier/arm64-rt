@@ -8,6 +8,8 @@ use core::panic::PanicInfo;
 use arm64::cache::*;
 use arm64::critical_section::*;
 use arm64::mmu::*;
+use arm64::psci::*;
+use arm64::smccc::*;
 use arm64::*;
 
 use embedded_hal_nb::serial::Write;
@@ -24,9 +26,15 @@ static L0TABLE: Mutex<RefCell<TranslationTable<Level0>>> =
 static L1TABLE: Mutex<RefCell<TranslationTable<Level1>>> =
     Mutex::new(RefCell::new(TranslationTable::DEFAULT));
 
-const DEFAULT_PAGE_ATTRS: BlockAttrs = BlockAttrs::DEFAULT
+const DEVICE_ATTRS: BlockAttrs = BlockAttrs::DEFAULT
     .with_mem_type(MemoryTyp::Device_nGnRnE)
     .with_shareability(Shareability::Non)
+    .with_access(Access::PrivReadWrite)
+    .with_security(SecurityDomain::NonSecure);
+
+const NORMAL_ATTRS: BlockAttrs = BlockAttrs::DEFAULT
+    .with_mem_type(MemoryTyp::Normal_Cacheable)
+    .with_shareability(Shareability::Inner)
     .with_access(Access::PrivReadWrite)
     .with_security(SecurityDomain::NonSecure);
 
@@ -36,9 +44,24 @@ unsafe fn main(info: EntryInfo) -> ! {
         let mut l0 = L0TABLE.borrow_ref_mut(cs);
         let mut l1 = L1TABLE.borrow_ref_mut(cs);
 
-        l0.map_table(0x4000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
-        l1.map_block(0x0000_0000, 0x0000_0000, DEFAULT_PAGE_ATTRS);
-        l1.map_block(0x4000_0000, 0x4000_0000, DEFAULT_PAGE_ATTRS);
+        if info.cpu_idx == 0 {
+            match () {
+                #[cfg(feature = "qemu")]
+                () => {
+                    l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
+                    l1.map_block(0x0000_0000, 0x0000_0000, DEVICE_ATTRS);
+                    l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
+                }
+
+                #[cfg(feature = "kr260")]
+                () => {
+                    l0.map_table(0x0000_0000, l1.base_addr() as u64, TableAttrs::DEFAULT);
+                    l1.map_block(0x0000_0000, 0x0000_0000, NORMAL_ATTRS);
+                    l1.map_block(0x4000_0000, 0x4000_0000, NORMAL_ATTRS);
+                    l1.map_block(0xC000_0000, 0xC000_0000, DEVICE_ATTRS);
+                }
+            }
+        }
 
         MMU::enable_el2(l0.base_addr() as u64);
 
@@ -53,15 +76,15 @@ unsafe fn main(info: EntryInfo) -> ! {
     }
 
     UartWriter
-        .write_fmt(format_args!("Hello World! cpu_idx = {}", info.cpu_idx))
+        .write_fmt(format_args!("Hello World! cpu_idx = {:?}", Caches::get()))
         .unwrap();
 
-    // Psci::cpu_on_64::<Smccc<SMC>>(
-    //     (info.cpu_idx + 1) as u64,
-    //     (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
-    //     0,
-    // )
-    // .unwrap();
+    Psci::cpu_on_64::<Smccc<SMC>>(
+        (info.cpu_idx + 1) as u64,
+        (start::<EntryImpl, Excps> as *const fn() -> !) as u64,
+        0,
+    )
+    .unwrap();
 
     loop {
         unsafe { core::arch::asm!("nop") };

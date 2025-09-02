@@ -89,7 +89,7 @@ impl CacheInfo {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CacheImpl {
     NoCache,
     InstructionOnly,
@@ -110,6 +110,7 @@ impl CacheImpl {
     }
 }
 
+#[derive(Debug)]
 pub struct Caches {
     pub levels: RangeInclusive<u8>,
     pub impls: [CacheImpl; 7],
@@ -132,8 +133,7 @@ impl Caches {
 
         let mut levels = 0;
         for level in 0..7 {
-            let mask = 0b111 << level;
-            let typ = (clidr_el1.raw_value() & mask) >> level;
+            let typ = clidr_el1.CTYPE(level).as_u8();
             if typ == 0b000 || typ > 0b100 {
                 break;
             }
