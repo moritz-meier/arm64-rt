@@ -145,11 +145,13 @@ macro_rules! expr_or_default {
 mod cache;
 mod id;
 mod mmu;
+mod perf;
 mod system;
 mod timer;
 
 pub use cache::*;
 pub use id::*;
 pub use mmu::*;
+pub use perf::*;
 pub use system::*;
 pub use timer::*;
