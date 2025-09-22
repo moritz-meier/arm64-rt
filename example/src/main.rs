@@ -4,10 +4,13 @@
 use core::cell::RefCell;
 use core::fmt::Write as FmtWrite;
 use core::panic::PanicInfo;
+use core::u32;
+use core::u64;
 
 use arm64::cache::*;
 use arm64::critical_section::*;
 use arm64::mmu::*;
+use arm64::pmu::PMU;
 use arm64::psci::*;
 use arm64::smccc::*;
 use arm64::*;
@@ -77,15 +80,73 @@ fn main(info: EntryInfo) -> ! {
         .write_fmt(format_args!("Hello World! cpu_idx = {}\n", info.cpu_idx))
         .unwrap();
 
-    Psci::cpu_on_64::<Smccc<SMC>>(
-        1,
-        (start::<SecEntryImpl, Excps> as *const fn() -> !) as u64,
-        0,
-    )
-    .unwrap();
+    PMU::enable();
+    PMU::setup_counter(0, pmu::Event::CPU_CYCLES);
+    PMU::setup_counter(1, pmu::Event::INST_RETIRED);
+    PMU::setup_counter(2, pmu::Event::L1D_CACHE);
+    PMU::setup_counter(3, pmu::Event::L2D_CACHE);
+
+    // Psci::cpu_on_64::<Smccc<SMC>>(
+    //     1,
+    //     (start::<SecEntryImpl, Excps> as *const fn() -> !) as u64,
+    //     0,
+    // )
+    // .unwrap();
 
     loop {
-        unsafe { core::arch::asm!("nop") };
+        PMU::reset();
+        PMU::start();
+
+        let x = 100;
+
+        unsafe {
+            core::arch::asm!(
+                "2:",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "nop",
+                "sub {x}, {x}, #1",
+                "cbnz {x}, 2b",
+                x = in(reg) x,
+            )
+        };
+
+        PMU::stop();
+
+        UartWriter
+            .write_fmt(format_args!(
+                "cycle_count =  {:?}   cpu_cycles = {:?}    insts = {:?}    l1 = {:?}   l2 = {:?}\n",
+                PMU::get_cycle_counter(),
+                PMU::get_counter(0),
+                PMU::get_counter(1),
+                PMU::get_counter(2),
+                PMU::get_counter(3)
+            ))
+            .unwrap();
     }
 }
 
