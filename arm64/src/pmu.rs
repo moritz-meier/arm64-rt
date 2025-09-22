@@ -101,15 +101,23 @@ impl PMU {
         PMOVSCLR_EL0.write(PMOVSCLR_EL0::new_with_raw_value(0));
     }
 
-    pub fn get_cycle_counter() -> (u64, bool) {
-        (PMCCNTR_EL0.read().CCNT(), PMOVSCLR_EL0.read().C())
+    pub fn get_cycle_counter() -> CounterValue<u64> {
+        if !PMOVSCLR_EL0.read().C() {
+            CounterValue::Ok(PMCCNTR_EL0.read().CCNT())
+        } else {
+            CounterValue::Overflowed(PMCCNTR_EL0.read().CCNT())
+        }
     }
 
-    pub fn get_counter(n: usize) -> (u32, bool) {
+    pub fn get_counter(n: usize) -> CounterValue<u32> {
         macro_rules! match_n {
             ($n:literal) => {
                 pastey::paste! {
-                    ([<PMEVCNTR $n _EL0>].read().EVCNT(), PMOVSCLR_EL0.read().P($n))
+                    if !PMOVSCLR_EL0.read().P($n) {
+                        CounterValue::Ok([<PMEVCNTR $n _EL0>].read().EVCNT())
+                    } else {
+                        CounterValue::Overflowed([<PMEVCNTR $n _EL0>].read().EVCNT())
+                    }
                 }
             };
         }
@@ -147,7 +155,7 @@ impl PMU {
             29 => match_n!(29),
             30 => match_n!(30),
             _ => {
-                return (0, false);
+                return CounterValue::Ok(0);
             }
         }
     }
@@ -190,4 +198,10 @@ pub enum Event {
     L1I_CACHE_REFILL = 0x01,
     SW_INCR = 0x00,
     FOO = 0x60,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CounterValue<T> {
+    Ok(T),
+    Overflowed(T),
 }
