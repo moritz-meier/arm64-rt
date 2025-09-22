@@ -105,6 +105,7 @@ system_register! {
         D: bool,
     }
 
+    #[derive(Debug)]
     #[bitenum(u5, exhaustive = false)]
     pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,
@@ -133,6 +134,7 @@ system_register! {
         D: bool,
     }
 
+    #[derive(Debug)]
     #[bitenum(u5, exhaustive = false)]
     pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,
@@ -159,6 +161,7 @@ system_register! {
         D: bool,
     }
 
+    #[derive(Debug)]
     #[bitenum(u5, exhaustive = false)]
     pub enum M {
         AARCH64_EL0_SP_EL0 = 0b00000,

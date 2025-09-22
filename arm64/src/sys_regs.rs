@@ -2,11 +2,11 @@ macro_rules! system_register {
     {
         $(#[$attrs:meta])*
         $vis:vis $name:ident (
-            $reg_name:literal, $t:ty, $access:ident
+            $reg_name:expr, $t:ty, $access:ident
             $(,res0 = $res0:expr)?
             $(,res1 = $res1:expr)?)
             $fields:tt
-            $($(#[$enum_attrs:meta])? $enum_vis:vis enum $enum_name:ident $enum_values:tt)*
+            $($(#[$enum_attrs:meta])* $enum_vis:vis enum $enum_name:ident $enum_values:tt)*
         } => {
         pastey::paste! {
             pub use [<$name:lower>]::$name;
@@ -43,7 +43,7 @@ macro_rules! system_register {
 }
 
 macro_rules! impl_system_register {
-    ($vis:vis impl $name:ident($reg_name:literal, $valtyp:ident($t:ty), r $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
+    ($vis:vis impl $name:ident($reg_name:expr, $valtyp:ident($t:ty), r $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
         impl $name {
 
             $vis const RES0: $t = expr_or_default!($($res0)?, 0);
@@ -55,7 +55,7 @@ macro_rules! impl_system_register {
         }
     };
 
-    ($vis:vis impl $name:ident($reg_name:literal, $valtyp:ident($t:ty), w $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
+    ($vis:vis impl $name:ident($reg_name:expr, $valtyp:ident($t:ty), w $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
         impl $name {
 
             $vis const RES0: $t = expr_or_default!($($res0)?, 0);
@@ -63,7 +63,7 @@ macro_rules! impl_system_register {
         }
     };
 
-    ($vis:vis impl $name:ident($reg_name:literal, $valtyp:ident($t:ty), rw $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
+    ($vis:vis impl $name:ident($reg_name:expr, $valtyp:ident($t:ty), rw $(,res0 = $res0:expr)? $(,res1 = $res1:expr)?)) => {
         impl $name {
 
             $vis const RES0: $t = expr_or_default!($($res0)?, 0);
@@ -85,7 +85,7 @@ macro_rules! impl_system_register {
 }
 
 macro_rules! impl_sysreg_read {
-    ($vis:vis fn read($reg_name:literal, $valtyp:ident, $t:ty)) => {
+    ($vis:vis fn read($reg_name:expr, $valtyp:ident, $t:ty)) => {
         $vis fn read(&self) -> $valtyp {
             let value: $t;
             unsafe {
@@ -100,7 +100,7 @@ macro_rules! impl_sysreg_read {
 }
 
 macro_rules! impl_sysreg_write {
-    ($vis:vis fn write($reg_name:literal, $valtyp:ty, $t:ty)) => {
+    ($vis:vis fn write($reg_name:expr, $valtyp:ty, $t:ty)) => {
         $vis fn write(&self, value: $valtyp) {
             let value: $t = (value.raw_value() & !RES0) | RES1;
             unsafe {
@@ -116,7 +116,7 @@ macro_rules! impl_sysreg_write {
 }
 
 macro_rules! impl_sysreg_modify {
-    ($vis:vis fn modify($reg_name:literal, $valtyp:ty, $t:ty)) => {
+    ($vis:vis fn modify($reg_name:expr, $valtyp:ty, $t:ty)) => {
         $vis fn modify(&self, f: impl Fn($valtyp) -> $valtyp) {
             let reg = self.read();
             let reg = f(reg);
@@ -145,13 +145,13 @@ macro_rules! expr_or_default {
 mod cache;
 mod id;
 mod mmu;
-mod perf;
+mod pmu;
 mod system;
 mod timer;
 
 pub use cache::*;
 pub use id::*;
 pub use mmu::*;
-pub use perf::*;
+pub use pmu::*;
 pub use system::*;
 pub use timer::*;

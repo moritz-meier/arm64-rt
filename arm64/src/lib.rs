@@ -19,7 +19,7 @@ compile_error!("A ARMv8A impl \"{cortex-a53, }\" must be selected.");
 pub mod cache;
 pub mod exceptions;
 pub mod mmu;
-pub mod perf;
+pub mod pmu;
 pub mod psci;
 pub mod smccc;
 pub mod start;
