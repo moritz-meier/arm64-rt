@@ -83,7 +83,8 @@ pub struct ExceptionFrame {
 }
 
 #[unsafe(naked)]
-#[repr(align(2048))]
+#[unsafe(link_section = ".text.vector_table")]
+// #[repr(align(2048))]
 pub unsafe extern "C" fn vector_table<ExcpVecs>() -> !
 where
     ExcpVecs: ExceptionVectors,

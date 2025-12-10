@@ -13,6 +13,10 @@ SECTIONS {
         __text_start = .;
 
         *(.text.start .text.start.*)
+
+        . = ALIGN(0x800);
+        *(.text.vector_table .text.vector_table.*)
+
         *(.text .text.*)
 
         . = ALIGN(0x8);

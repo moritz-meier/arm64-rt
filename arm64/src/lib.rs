@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(fn_align)]
 #![feature(ptr_mask)]
 #![feature(ptr_as_ref_unchecked)]
 #![feature(generic_const_exprs)]
