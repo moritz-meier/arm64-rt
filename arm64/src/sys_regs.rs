@@ -143,6 +143,7 @@ macro_rules! expr_or_default {
 }
 
 mod cache;
+mod cpuactlr;
 mod id;
 mod mmu;
 mod pmu;
@@ -150,6 +151,7 @@ mod system;
 mod timer;
 
 pub use cache::*;
+pub use cpuactlr::*;
 pub use id::*;
 pub use mmu::*;
 pub use pmu::*;
