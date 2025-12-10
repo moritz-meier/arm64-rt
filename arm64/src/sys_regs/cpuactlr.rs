@@ -4,7 +4,7 @@
 #[cfg(feature = "cortex-a53")]
 system_register! {
     pub CPUACTLR_EL1(
-        "CPUACTLR_EL1", u64, rw
+        "S3_1_C15_C2_0", u64, rw
     ) {
         #[bit(44, rw)]
         ENDCCASCI: bool,
