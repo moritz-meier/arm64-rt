@@ -26,6 +26,8 @@ pub mod sys_regs;
 
 mod asm;
 
+pub use arbitrary_int;
+
 #[cfg(feature = "critical-section")]
 pub mod critical_section;
 
