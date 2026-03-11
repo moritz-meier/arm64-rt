@@ -51,6 +51,15 @@ SECTIONS {
 		__bss_end = .;
 	}
 
+    .heap ALIGN(0x1000) (NOLOAD) : {
+        __heap_start = .;
+
+        . += __HEAP_SIZE;
+
+        . = ALIGN(0x1000);
+		__heap_end = .;
+    }
+
     .stack ALIGN(0x1000) (NOLOAD) : {
         __stack_start = .;
 
