@@ -22,6 +22,7 @@ pub mod pmu;
 pub mod psci;
 pub mod smccc;
 pub mod start;
+pub mod stm;
 pub mod sys_regs;
 
 mod asm;
