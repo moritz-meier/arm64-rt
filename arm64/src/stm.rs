@@ -25,24 +25,60 @@ pub enum StmType {
     I_TRIG = 0xF8,
 }
 
-pub struct STM<'a> {
+pub struct Stm<'a> {
     ptr: UniqueMmioPointer<'a, StmMmio>,
 }
 
-impl<'a> STM<'a> {
+impl<'a> Stm<'a> {
     pub const fn new(ptr: NonNull<StmMmio>) -> Self {
-        STM {
+        Stm {
             ptr: unsafe { UniqueMmioPointer::new(ptr) },
         }
     }
 
-    pub fn write(&mut self, port: u16, typ: StmType, data: u8) {
+    pub fn write_u8(&mut self, port: u16, typ: StmType, data: u8) {
         let mut ports = field!(self.ptr, ports);
         let mut port = ports.get(port as usize).unwrap();
         let mut regs = field!(port, regs);
         let mut reg = regs.get(typ as usize).unwrap();
 
         reg.write(data)
+    }
+
+    pub fn write_u16(&mut self, port: u16, typ: StmType, data: u16) {
+        let mut ports = field!(self.ptr, ports);
+        let mut port = ports.get(port as usize).unwrap();
+        let mut regs = field!(port, regs);
+        let mut reg = regs.get(typ as usize).unwrap();
+
+        unsafe {
+            UniqueMmioPointer::new(NonNull::new(reg.ptr_mut() as *mut u16).unwrap())
+                .write_unsafe(data)
+        }
+    }
+
+    pub fn write_u32(&mut self, port: u16, typ: StmType, data: u32) {
+        let mut ports = field!(self.ptr, ports);
+        let mut port = ports.get(port as usize).unwrap();
+        let mut regs = field!(port, regs);
+        let mut reg = regs.get(typ as usize).unwrap();
+
+        unsafe {
+            UniqueMmioPointer::new(NonNull::new(reg.ptr_mut() as *mut u32).unwrap())
+                .write_unsafe(data)
+        }
+    }
+
+    pub fn write_u64(&mut self, port: u16, typ: StmType, data: u64) {
+        let mut ports = field!(self.ptr, ports);
+        let mut port = ports.get(port as usize).unwrap();
+        let mut regs = field!(port, regs);
+        let mut reg = regs.get(typ as usize).unwrap();
+
+        unsafe {
+            UniqueMmioPointer::new(NonNull::new(reg.ptr_mut() as *mut u64).unwrap())
+                .write_unsafe(data)
+        }
     }
 }
 
