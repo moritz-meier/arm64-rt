@@ -1,4 +1,4 @@
-use core::arch::asm;
+use arm64::sys_regs::*;
 
 use spin::{Mutex, MutexGuard};
 
@@ -8,8 +8,14 @@ pub trait MutexIrqExt<T: ?Sized> {
 
 impl<T: ?Sized> MutexIrqExt<T> for Mutex<T> {
     fn lock_irq<O>(&self, f: impl Fn(MutexGuard<'_, T>) -> O) -> O {
-        let daif: u64;
-        unsafe { asm!("mrs {daif}, DAIF", "msr DAIFSet, #0xf", daif = lateout(reg) daif) }
+        let daif = DAIF.read();
+        DAIF.write(
+            DAIF::ZERO
+                .with_D(true)
+                .with_A(true)
+                .with_I(true)
+                .with_F(true),
+        );
 
         let res;
         {
@@ -17,7 +23,7 @@ impl<T: ?Sized> MutexIrqExt<T> for Mutex<T> {
             res = f(lock);
         }
 
-        unsafe { asm!("msr DAIF, {daif}", daif = in(reg) daif) }
+        DAIF.write(daif);
 
         res
     }

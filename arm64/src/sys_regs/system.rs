@@ -169,3 +169,19 @@ system_register! {
         AARCH64_EL1_SP_EL1 = 0b00101,
     }
 }
+
+system_register! {
+    pub DAIF(
+        "DAIF", u64, rw
+    ) {
+
+        #[bit(9, rw)]
+        D: bool,
+        #[bit(8, rw)]
+        A: bool,
+        #[bit(7, rw)]
+        I: bool,
+        #[bit(6, rw)]
+        F: bool
+    }
+}
