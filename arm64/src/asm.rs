@@ -1,4 +1,13 @@
 #[macro_export]
+macro_rules! nop {
+    () => {
+        unsafe {
+            core::arch::asm!("nop");
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! dmb {
     ($opt:literal) => {
         unsafe {

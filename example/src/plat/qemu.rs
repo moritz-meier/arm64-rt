@@ -1,6 +1,6 @@
 use core::cell::RefCell;
 
-use arm64::critical_section::Mutex;
+use spin::Mutex;
 
 pub use sel4_pl011_driver as uart;
 

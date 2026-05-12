@@ -1,6 +1,5 @@
 #![no_std]
 #![feature(ptr_mask)]
-#![feature(ptr_as_ref_unchecked)]
 #![feature(generic_const_exprs)]
 
 #[cfg(not(target_arch = "aarch64"))]
@@ -24,12 +23,10 @@ pub mod smccc;
 pub mod start;
 pub mod stm;
 pub mod sys_regs;
+pub mod sys_timer;
 
 mod asm;
 
 pub use arbitrary_int;
-
-#[cfg(feature = "critical-section")]
-pub mod critical_section;
 
 pub use start::*;

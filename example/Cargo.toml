@@ -9,9 +9,15 @@ qemu = []
 kr260 = []
 
 [dependencies]
-arm64 = { path = "../arm64", features = ["critical-section", "cortex-a53"] }
+arm64 = { path = "../arm64", features = ["cortex-a53"] }
+
+spin = { version = "0.10.0", default-features = false, features = [
+    "spin_mutex",
+    "once",
+] }
 
 embedded-hal-nb = "*"
+log = "0.4.29"
 
 sel4-pl011-driver = { git = "https://github.com/moritz-meier/rust-sel4.git", branch = "feat/zynqmp-support" }
 sel4-zynqmp-xuartps-driver = { git = "https://github.com/moritz-meier/rust-sel4.git", branch = "feat/zynqmp-support" }

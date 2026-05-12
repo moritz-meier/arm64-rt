@@ -2,7 +2,7 @@ use core::{arch::naked_asm, usize};
 
 use cfg_asm::cfg_naked_asm;
 
-pub use entry_macro::entry;
+pub use entry_macro::*;
 
 use crate::{exceptions::*, sys_regs::*};
 
