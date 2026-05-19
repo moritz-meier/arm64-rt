@@ -3,7 +3,7 @@
 A crate for running Rust on bare-metal AArch64
 
 - Startup Code
-- Muli-Core
+- Multi-Core
 - Exception Level EL3-EL1 NS
 - Cache Maintenance
 - Virtual Memory
