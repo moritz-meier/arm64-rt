@@ -37,11 +37,11 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[unsafe(naked)]
         #[unsafe(no_mangle)]
         #[unsafe(link_section = ".text.start")]
-        pub unsafe extern "C" fn _start() -> ! {
+        pub(crate) unsafe extern "C" fn _start() -> ! {
             ::core::arch::naked_asm!("b {}", sym #arch::start::<EntryImpl, #exceptions>)
         }
 
-        struct EntryImpl;
+        pub(crate) struct EntryImpl;
         impl #arch::Entry for EntryImpl {
             unsafe extern "C" fn entry(info: EntryInfo) -> ! {
                 #f_ident(info)
@@ -86,11 +86,11 @@ pub fn secondary_entry(args: TokenStream, input: TokenStream) -> TokenStream {
     quote!(
         #[unsafe(naked)]
         #[unsafe(no_mangle)]
-        pub unsafe extern "C" fn _secondary_start() -> ! {
+        pub(crate) unsafe extern "C" fn _secondary_start() -> ! {
             ::core::arch::naked_asm!("b {}", sym #arch::start::<SecondaryEntryImpl, #exceptions>)
         }
 
-        struct SecondaryEntryImpl;
+        pub(crate) struct SecondaryEntryImpl;
         impl #arch::Entry for SecondaryEntryImpl {
             unsafe extern "C" fn entry(info: EntryInfo) -> ! {
                 #f_ident(info)
