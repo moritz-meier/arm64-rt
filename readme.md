@@ -23,7 +23,7 @@ cargo run --target aarch64-unknown-none
 ### Run on ZynqMP Board
 
 Xilinx `xsdb` debugger is needed  
-for example from https://github.com/DLR-FT/xilinx-nix-utils/tree/zynq-modules (`nix develop .#xilinx-lab`):
+for example from [xilinx-nix-utils](https://github.com/DLR-FT/xilinx-nix-utils/tree/zynq-modules) (`nix develop .#xilinx-lab`):
 
 
 ```
