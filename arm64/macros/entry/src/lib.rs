@@ -28,7 +28,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let exceptions = if let Some(excps) = args.exceptions {
-        quote!(crate::#excps)
+        quote!(#excps)
     } else {
         quote!(#arch::DefaultExceptions)
     };
@@ -38,7 +38,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[unsafe(no_mangle)]
         #[unsafe(link_section = ".text.start")]
         pub unsafe extern "C" fn _start() -> ! {
-            ::core::arch::naked_asm!("b {}", sym #arch::start::<crate::EntryImpl, #exceptions>)
+            ::core::arch::naked_asm!("b {}", sym #arch::start::<EntryImpl, #exceptions>)
         }
 
         struct EntryImpl;
@@ -78,7 +78,7 @@ pub fn secondary_entry(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let exceptions = if let Some(excps) = args.exceptions {
-        quote!(crate::#excps)
+        quote!(#excps)
     } else {
         quote!(#arch::DefaultExceptions)
     };
@@ -87,7 +87,7 @@ pub fn secondary_entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[unsafe(naked)]
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn _secondary_start() -> ! {
-            ::core::arch::naked_asm!("b {}", sym #arch::start::<crate::SecondaryEntryImpl, #exceptions>)
+            ::core::arch::naked_asm!("b {}", sym #arch::start::<SecondaryEntryImpl, #exceptions>)
         }
 
         struct SecondaryEntryImpl;
