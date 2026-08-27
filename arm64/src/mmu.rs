@@ -44,7 +44,8 @@ impl MMU {
                 .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111)
                 .with_ATTR4(0b01001111)
-                .with_ATTR5(0b11110100),
+                .with_ATTR5(0b11110100)
+                .with_ATTR6(0b11110111),
         );
 
         let table_paddr = u47::from_u64(
@@ -76,7 +77,8 @@ impl MMU {
                 .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111)
                 .with_ATTR4(0b01001111)
-                .with_ATTR5(0b11110100),
+                .with_ATTR5(0b11110100)
+                .with_ATTR6(0b11110111),
         );
 
         let table_paddr = u47::from_u64(
@@ -106,7 +108,8 @@ impl MMU {
                 .with_ATTR2(0b10101010)
                 .with_ATTR3(0b11111111)
                 .with_ATTR4(0b01001111)
-                .with_ATTR5(0b11110100),
+                .with_ATTR5(0b11110100)
+                .with_ATTR6(0b11110111),
         );
 
         let table_paddr = u47::from_u64(
@@ -231,6 +234,7 @@ pub enum MemoryTyp {
     Normal_Cacheable,
     Normal_InnerCacheable,
     Normal_OuterCacheable,
+    Normal_Cacheable_InnerTransient,
 }
 
 pub enum Shareability {

@@ -203,6 +203,7 @@ impl TranslationTableEntry<Level1> {
             MemoryTyp::Normal_Cacheable => 3,
             MemoryTyp::Normal_InnerCacheable => 4,
             MemoryTyp::Normal_OuterCacheable => 5,
+            MemoryTyp::Normal_Cacheable_InnerTransient => 6,
         };
 
         Self {
@@ -263,6 +264,7 @@ impl TranslationTableEntry<Level2> {
             MemoryTyp::Normal_Cacheable => 3,
             MemoryTyp::Normal_InnerCacheable => 4,
             MemoryTyp::Normal_OuterCacheable => 5,
+            MemoryTyp::Normal_Cacheable_InnerTransient => 6,
         };
 
         Self {
@@ -308,6 +310,7 @@ impl TranslationTableEntry<Level3> {
             MemoryTyp::Normal_Cacheable => 3,
             MemoryTyp::Normal_InnerCacheable => 4,
             MemoryTyp::Normal_OuterCacheable => 5,
+            MemoryTyp::Normal_Cacheable_InnerTransient => 6,
         };
 
         Self {
